@@ -21,4 +21,5 @@
     <color name="menu_background">#1a1a2e</color>
     <color name="menu_border">#DEBDFF</color>
     <color name="accent_color">#E1FFBA</color>
+    <color name="chip_background">#2A3252</color>
 </resources>

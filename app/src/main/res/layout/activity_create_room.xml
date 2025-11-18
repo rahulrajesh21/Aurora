@@ -48,7 +48,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="Create a Room"
+                android:text="@string/create_room_title"
                 android:textColor="@color/white"
                 android:textSize="28sp"
                 android:textStyle="bold"
@@ -62,7 +62,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Invite friends to jam live. Pick a vibe, set the capacity, and hit create."
+                android:text="@string/create_room_subtitle"
                 android:textColor="#C8CCDA"
                 android:textSize="14sp"
                 app:layout_constraintStart_toStartOf="parent"
@@ -87,7 +87,18 @@
                     android:orientation="vertical"
                     android:padding="20dp"
                     android:divider="@drawable/divider_horizontal"
-                    android:showDividers="middle">
+                    android:showDividers="none">
+
+                    <TextView
+                        android:id="@+id/basicsLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/create_room_section_basics"
+                        android:textColor="#C8CCDA"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:drawablePadding="8dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/roomNameLayout"
@@ -126,6 +137,50 @@
                             android:textColorHint="#959DB6" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <TextView
+                        android:id="@+id/vibePreview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/create_room_vibe_preview_default"
+                        android:textColor="#8790AC"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/vibeSuggestionsGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:singleLine="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipVibeChill"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Neon chill"
+                            android:textColor="@color/white"
+                            app:chipBackgroundColor="@color/chip_background" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipVibeParty"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="House party"
+                            android:textColor="@color/white"
+                            app:chipBackgroundColor="@color/chip_background" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipVibeStudy"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Lofi focus"
+                            android:textColor="@color/white"
+                            app:chipBackgroundColor="@color/chip_background" />
+                    </com.google.android.material.chip.ChipGroup>
+
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/capacityLayout"
                         style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
@@ -143,6 +198,87 @@
                             android:textColor="@color/white"
                             android:textColorHint="#959DB6" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:id="@+id/accessLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/create_room_section_access"
+                        android:textColor="#C8CCDA"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/visibilityToggle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:singleSelection="true"
+                        app:selectionRequired="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/visibilityPublic"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/create_room_visibility_public"
+                            android:textAllCaps="false"
+                            app:cornerRadius="16dp"
+                            app:strokeColor="@color/primary_green"
+                            app:icon="@drawable/ic_people"
+                            app:iconGravity="textStart"
+                            app:iconPadding="12dp"
+                            app:iconTint="@color/primary_green" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/visibilityPrivate"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/create_room_visibility_private"
+                            android:textAllCaps="false"
+                            app:cornerRadius="16dp"
+                            app:strokeColor="@color/primary_purple"
+                            app:icon="@drawable/ic_lock"
+                            app:iconGravity="textStart"
+                            app:iconPadding="12dp"
+                            app:iconTint="@color/primary_purple" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <TextView
+                        android:id="@+id/visibilityHelp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/create_room_visibility_help_public"
+                        android:textColor="#8790AC"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/passcodeLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/create_room_passcode_hint"
+                        android:visibility="gone"
+                        app:boxBackgroundColor="@android:color/transparent"
+                        app:hintTextColor="@color/primary_purple">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/passcodeInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPassword"
+                            android:maxLines="1"
+                            android:textColor="@color/white"
+                            android:textColorHint="#959DB6" />
+                    </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -152,7 +288,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
                 android:backgroundTint="@color/primary_green"
-                android:text="Create Room"
+                android:text="@string/create_room_button"
                 android:textColor="@color/black"
                 android:textSize="16sp"
                 app:cornerRadius="28dp"

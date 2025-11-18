@@ -6,11 +6,19 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 
 class AlbumAdapter(
-    private val albums: List<Album>,
     private val onAlbumClick: (Album) -> Unit
 ) : RecyclerView.Adapter<AlbumAdapter.AlbumViewHolder>() {
+
+    private val albums = mutableListOf<Album>()
+
+    fun submitList(items: List<Album>) {
+        albums.clear()
+        albums.addAll(items)
+        notifyDataSetChanged()
+    }
     
     class AlbumViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val albumImage: ImageView = view.findViewById(R.id.albumImage)
@@ -26,7 +34,17 @@ class AlbumAdapter(
     
     override fun onBindViewHolder(holder: AlbumViewHolder, position: Int) {
         val album = albums[position]
-        holder.albumImage.setImageResource(album.imageResId)
+        val imageResId = album.imageResId
+        if (imageResId != null) {
+            holder.albumImage.setImageResource(imageResId)
+        } else if (!album.imageUrl.isNullOrBlank()) {
+            holder.albumImage.load(album.imageUrl) {
+                placeholder(R.drawable.album_placeholder)
+                error(R.drawable.album_placeholder)
+            }
+        } else {
+            holder.albumImage.setImageResource(R.drawable.album_placeholder)
+        }
         holder.albumTitle.text = album.title
         holder.albumArtist.text = album.artist
         

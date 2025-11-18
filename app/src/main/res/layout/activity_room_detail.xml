@@ -169,13 +169,126 @@
 
         <!-- Vote for Next Song -->
         <LinearLayout
+            android:id="@+id/playbackTimeRow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toBottomOf="@id/nowPlayingCard"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/playbackElapsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0:00"
+                android:textColor="#C8CCDA"
+                android:textSize="12sp"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/playbackDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0:00"
+                android:textColor="#C8CCDA"
+                android:textSize="12sp"/>
+        </LinearLayout>
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/playbackSlider"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/playbackTimeRow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:valueFrom="0"
+            android:valueTo="300"
+            android:value="0"
+            android:stepSize="1"
+            app:trackColorActive="@color/primary_green"
+            app:trackColorInactive="#2F395A"
+            app:thumbColor="@color/primary_green" />
+
+        <LinearLayout
+            android:id="@+id/playbackControlsRow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:weightSum="5"
+            app:layout_constraintTop_toBottomOf="@id/playbackSlider"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageView
+                android:id="@+id/shuffleButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_shuffle"
+                android:background="@drawable/circle_button_background"
+                app:tint="@color/white"
+                android:alpha="0.8"/>
+
+            <ImageView
+                android:id="@+id/previousButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="12dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_previous"
+                android:background="@drawable/circle_button_background"
+                app:tint="@color/white"/>
+
+            <ImageView
+                android:id="@+id/playPauseButton"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginStart="12dp"
+                android:padding="16dp"
+                android:src="@drawable/ic_play_circle"
+                android:background="@drawable/circle_button_background"
+                app:tint="@color/primary_green"/>
+
+            <ImageView
+                android:id="@+id/nextButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="12dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_next"
+                android:background="@drawable/circle_button_background"
+                app:tint="@color/white"/>
+
+            <ImageView
+                android:id="@+id/repeatButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="12dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_repeat"
+                android:background="@drawable/circle_button_background"
+                app:tint="@color/white"
+                android:alpha="0.8"/>
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/voteHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="32dp"
             android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@id/nowPlayingCard">
+            app:layout_constraintTop_toBottomOf="@id/playbackControlsRow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <TextView
                 android:layout_width="0dp"
@@ -187,38 +300,49 @@
                 android:textStyle="bold"/>
 
             <TextView
+                android:id="@+id/addSongButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add Song"
+                android:text="@string/add_song"
                 android:textColor="@color/primary_green"
                 android:textSize="14sp"/>
 
         </LinearLayout>
 
-        <!-- Song Queue List -->
-        <LinearLayout
-            android:id="@+id/queueList"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/queueRecyclerView"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:layout_marginTop="16dp"
+            android:nestedScrollingEnabled="false"
             app:layout_constraintTop_toBottomOf="@id/voteHeader"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintEnd_toEndOf="parent"/>
 
-            <!-- Song 1 -->
-            <include layout="@layout/item_queue_song"/>
+        <TextView
+            android:id="@+id/queueEmptyState"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/queue_empty"
+            android:textColor="@color/white"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/voteHeader"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
-            <!-- Song 2 -->
-            <include layout="@layout/item_queue_song"/>
-
-            <!-- Song 3 -->
-            <include layout="@layout/item_queue_song"/>
-
-            <!-- Song 4 -->
-            <include layout="@layout/item_queue_song"/>
-
-        </LinearLayout>
+        <ProgressBar
+            android:id="@+id/queueLoading"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:indeterminate="true"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/voteHeader"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

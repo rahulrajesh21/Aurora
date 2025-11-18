@@ -1,0 +1,16 @@
+[
+  {
+    "id": "46bf9d67-d349-4488-85ac-43f58502102d",
+    "displayName": "Listener-1be39f",
+    "joinedAt": 1763494091701,
+    "lastActiveAt": 1763494091701,
+    "isHost": true
+  },
+  {
+    "id": "7b318efc-cac7-4925-9c83-1d828304e202",
+    "displayName": "Listener-1be39f",
+    "joinedAt": 1763494135714,
+    "lastActiveAt": 1763494135714,
+    "isHost": false
+  }
+]

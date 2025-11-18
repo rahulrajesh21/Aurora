@@ -1,0 +1,42 @@
+{
+  "streaming": {
+    "youtube": {
+      "apiKey": "",
+      "searchTimeout": 2000,
+      "searchLimit": 20
+    },
+    "queue": {
+      "maxSize": 100,
+      "persistenceEnabled": true,
+      "storagePath": "./data/queue.json"
+    },
+    "playback": {
+      "seekTimeoutMs": 1000,
+      "retryAttempts": 3,
+      "retryBackoffMs": [1000, 2000, 4000],
+      "startPlaybackTimeoutMs": 2000,
+      "transitionTimeoutMs": 2000
+    },
+    "state": {
+      "persistenceEnabled": true,
+      "storagePath": "./data/state.json"
+    },
+    "websocket": {
+      "broadcastDelayMs": 500
+    },
+    "rooms": {
+      "storageDriver": "libsql",
+      "storagePath": "./data/rooms",
+      "maxMembers": 25,
+      "idleTimeoutMs": 900000,
+      "invite": {
+        "ttlSeconds": 86400,
+        "maxPending": 10
+      },
+      "libsql": {
+        "url": "file:./data/rooms.db",
+        "authToken": ""
+      }
+    }
+  }
+}

@@ -88,3 +88,8 @@ lint/tmp/
 
 # Mac
 .DS_Store
+
+# Node.js
+backend-node/node_modules/
+node_modules/
+backend-node/dist/
