@@ -19,9 +19,14 @@
         android:background="@drawable/radial_blue_blob"
         android:alpha="0.5"/>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
         android:padding="24dp">
 
@@ -68,34 +73,29 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
 
-        <!-- Listener Count -->
-        <LinearLayout
-            android:id="@+id/listenerInfo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginTop="24dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/backButton">
+        
+         <!-- Album Art -->
+        <androidx.cardview.widget.CardView
+                android:id="@+id/albumArtCard"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginTop="40dp"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="8dp"
+                app:layout_constraintDimensionRatio="1:1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/backButton"
+                app:layout_constraintWidth_percent="0.85">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_people"
-                app:tint="@color/primary_green"/>
+                <ImageView
+                    android:id="@+id/albumArtImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/album_placeholder"/>
 
-            <TextView
-                android:id="@+id/listenerCountText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="24 listening"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:layout_marginStart="8dp"/>
-
-        </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
         <!-- Now Playing Section -->
         <TextView
@@ -108,7 +108,7 @@
             android:textStyle="bold"
             android:layout_marginTop="32dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/listenerInfo"/>
+            app:layout_constraintTop_toBottomOf="@id/albumArtCard"/>
 
         <androidx.cardview.widget.CardView
             android:id="@+id/nowPlayingCard"
@@ -196,37 +196,32 @@
         </LinearLayout>
 
         <!-- Song Queue List -->
-        <ScrollView
+        <LinearLayout
+            android:id="@+id/queueList"
             android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:layout_marginTop="16dp"
-            android:clipToPadding="false"
             app:layout_constraintTop_toBottomOf="@id/voteHeader"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
+            <!-- Song 1 -->
+            <include layout="@layout/item_queue_song"/>
 
-                <!-- Song 1 -->
-                <include layout="@layout/item_queue_song"/>
+            <!-- Song 2 -->
+            <include layout="@layout/item_queue_song"/>
 
-                <!-- Song 2 -->
-                <include layout="@layout/item_queue_song"/>
+            <!-- Song 3 -->
+            <include layout="@layout/item_queue_song"/>
 
-                <!-- Song 3 -->
-                <include layout="@layout/item_queue_song"/>
+            <!-- Song 4 -->
+            <include layout="@layout/item_queue_song"/>
 
-                <!-- Song 4 -->
-                <include layout="@layout/item_queue_song"/>
-
-            </LinearLayout>
-
-        </ScrollView>
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
 
 </FrameLayout>
