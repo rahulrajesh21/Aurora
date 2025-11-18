@@ -2,16 +2,13 @@ package com.musicstreaming
 
 import com.musicstreaming.api.configureRouting
 import com.musicstreaming.config.ConfigurationException
-import com.musicstreaming.database.DatabaseConfig
 import com.musicstreaming.di.ServiceContainer
-import com.musicstreaming.routes.roomRoutes
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
 import java.time.Duration
@@ -34,10 +31,6 @@ fun main() {
 
 fun Application.module() {
     try {
-        // Initialize NeonDB database connection
-        DatabaseConfig.init()
-        log.info("Database initialized successfully")
-        
         // Initialize dependency injection container
         // This will load and validate configuration
         val container = ServiceContainer.initialize(environment)
@@ -82,8 +75,5 @@ fun Application.module() {
     }
     
     // Configure API routes
-    routing {
-        configureRouting()
-        roomRoutes()  // Add room management routes
-    }
+    configureRouting()
 }
