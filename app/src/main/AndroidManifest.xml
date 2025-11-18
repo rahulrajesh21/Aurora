@@ -36,6 +36,11 @@
             android:name=".RoomDetailActivity"
             android:exported="false"
             android:theme="@style/Theme.Music_room"/>
+
+        <activity
+            android:name=".CreateRoomActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Music_room"/>
         
     </application>
 

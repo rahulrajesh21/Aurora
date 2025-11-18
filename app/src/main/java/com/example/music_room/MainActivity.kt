@@ -3,6 +3,7 @@ package com.example.music_room
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ImageView
+import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -16,8 +17,32 @@ class MainActivity : AppCompatActivity() {
         
         setContentView(R.layout.activity_main)
         
+        setupMenuButton()
         setupPopularAlbums()
         setupTrendingPlaylist()
+    }
+
+    private fun setupMenuButton() {
+        val menuButton = findViewById<com.google.android.material.button.MaterialButton>(R.id.menuButton)
+        menuButton.setOnClickListener { anchor ->
+            PopupMenu(this, anchor).apply {
+                menuInflater.inflate(R.menu.menu_main, menu)
+                setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.action_create_room -> {
+                            startActivity(Intent(this@MainActivity, CreateRoomActivity::class.java))
+                            true
+                        }
+                        R.id.action_browse_rooms -> {
+                            startActivity(Intent(this@MainActivity, RoomsActivity::class.java))
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                show()
+            }
+        }
     }
     
     private fun setupPopularAlbums() {

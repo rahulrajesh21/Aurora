@@ -10,7 +10,7 @@ A modern Android music player app with a stunning gradient UI and glassmorphism 
 - **Album Gallery** - Browse albums with circular artwork and smooth animations
 - **Modern UI/UX** - Clean, intuitive interface with custom color palette
 
-## 🎨 Design
+## 🎨 Designsanldansdn
 
 - **Color Palette:**
   - Primary Purple: `#DEBDFF`

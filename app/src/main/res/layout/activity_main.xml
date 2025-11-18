@@ -38,11 +38,16 @@
         android:background="@drawable/radial_cyan_blob"
         android:alpha="0.5"/>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="16dp"
+        android:fillViewport="true"
         android:fitsSystemWindows="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="16dp">
 
         <!-- Top Bar -->
         <LinearLayout
@@ -165,7 +170,8 @@
             app:layout_constraintBottom_toTopOf="@id/popularHeader"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintVertical_weight="1">
+            app:layout_constraintVertical_bias="0.0"
+            app:layout_constraintHeight_percent="0.35">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -307,6 +313,8 @@
             android:layout_marginEnd="24dp"
             android:layout_marginTop="16dp"
             android:gravity="center_vertical"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@id/popularAlbumsRecyclerView"
             app:layout_constraintTop_toBottomOf="@id/trendingCard">
 
@@ -332,17 +340,21 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/popularAlbumsRecyclerView"
             android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:layout_marginBottom="16dp"
             android:paddingStart="24dp"
             android:paddingEnd="24dp"
             android:clipToPadding="false"
+            android:nestedScrollingEnabled="false"
             app:layout_constraintTop_toBottomOf="@id/popularHeader"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintVertical_weight="1"/>
+            app:layout_constraintVertical_bias="0.0"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
 
 </FrameLayout>

@@ -27,6 +27,13 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
     
+    // Database - Exposed ORM + PostgreSQL
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.postgresql)
+    implementation(libs.hikaricp)
+    
     // Logging
     implementation(libs.logback.classic)
     
