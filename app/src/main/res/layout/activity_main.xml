@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Base gradient background -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/gradient_background"/>
+
+    <!-- Purple radial blob - top left -->
+    <View
+        android:layout_width="350dp"
+        android:layout_height="350dp"
+        android:layout_marginStart="-100dp"
+        android:layout_marginTop="-50dp"
+        android:background="@drawable/radial_purple_blob"
+        android:alpha="0.6"/>
+
+    <!-- Blue radial blob - center -->
+    <View
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="100dp"
+        android:background="@drawable/radial_blue_blob"
+        android:alpha="0.5"/>
+
+    <!-- Cyan radial blob - bottom right -->
+    <View
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="-80dp"
+        android:layout_marginBottom="-80dp"
+        android:background="@drawable/radial_cyan_blob"
+        android:alpha="0.5"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="16dp"
+        android:fitsSystemWindows="true">
+
+        <!-- Top Bar -->
+        <LinearLayout
+            android:id="@+id/topBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/menuButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☰ Menu"
+                android:textColor="@color/primary_purple"
+                android:textSize="14sp"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/primary_purple"
+                app:strokeWidth="1dp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:backgroundTint="@color/black"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"/>
+
+            <ImageView
+                android:id="@+id/searchIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_search"
+                android:layout_marginEnd="12dp"
+                app:tint="@color/white"/>
+
+            <ImageView
+                android:id="@+id/profileIcon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_profile"
+                android:background="@drawable/circle_background"/>
+
+        </LinearLayout>
+
+        <!-- Welcome Text -->
+        <TextView
+            android:id="@+id/welcomeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hi, Welcome Back 👋"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/topBar"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <!-- Main Title -->
+        <TextView
+            android:id="@+id/mainTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Listen to Your\nFavourite Music"
+            android:textColor="@color/white"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:lineSpacingExtra="2dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/welcomeText"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- Trending Playlist Section -->
+        <LinearLayout
+            android:id="@+id/trendingHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="16dp"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toBottomOf="@id/mainTitle">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Trending Playlist"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="See All"
+                android:textColor="@color/primary_green"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <!-- Trending Playlist Card -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/trendingCard"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            android:alpha="0.75"
+            app:layout_constraintTop_toBottomOf="@id/trendingHeader"
+            app:layout_constraintBottom_toTopOf="@id/popularHeader"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_weight="1">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="16dp">
+
+                <ImageView
+                    android:id="@+id/playlistImage"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/playlist_cover"
+                    android:scaleType="centerCrop"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <TextView
+                    android:id="@+id/playlistTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="PopWorld"
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="16dp"
+                    app:layout_constraintStart_toEndOf="@id/playlistImage"
+                    app:layout_constraintTop_toTopOf="@id/playlistImage"
+                    app:layout_constraintEnd_toEndOf="parent"/>
+
+                <TextView
+                    android:id="@+id/playlistArtist"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="By Kelly Owens"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="4dp"
+                    app:layout_constraintStart_toEndOf="@id/playlistImage"
+                    app:layout_constraintTop_toBottomOf="@id/playlistTitle"
+                    app:layout_constraintEnd_toEndOf="parent"/>
+
+                <TextView
+                    android:id="@+id/playlistSongs"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="120 Songs"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="2dp"
+                    app:layout_constraintStart_toEndOf="@id/playlistImage"
+                    app:layout_constraintTop_toBottomOf="@id/playlistArtist"
+                    app:layout_constraintEnd_toEndOf="parent"/>
+
+                <!-- Waveform -->
+                <ImageView
+                    android:id="@+id/waveform"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/waveform"
+                    android:layout_marginTop="16dp"
+                    android:scaleType="fitXY"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/playButtonCard"
+                    app:layout_constraintTop_toBottomOf="@id/playlistImage"
+                    android:layout_marginEnd="12dp"/>
+
+                <ImageView
+                    android:id="@+id/playButtonCard"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_play_circle"
+                    android:layout_marginTop="8dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/playlistImage"/>
+
+                <!-- Song Info -->
+                <TextView
+                    android:id="@+id/songTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="Dusk Till Dawn..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:layout_marginTop="8dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/waveform"/>
+
+                <TextView
+                    android:id="@+id/songDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="02:34"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:layout_marginTop="8dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/waveform"/>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Popular Albums Section -->
+        <LinearLayout
+            android:id="@+id/popularHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="16dp"
+            android:gravity="center_vertical"
+            app:layout_constraintBottom_toTopOf="@id/popularAlbumsRecyclerView"
+            app:layout_constraintTop_toBottomOf="@id/trendingCard">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Popular Albums"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="See All"
+                android:textColor="@color/primary_green"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <!-- Popular Albums RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/popularAlbumsRecyclerView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="12dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:clipToPadding="false"
+            app:layout_constraintTop_toBottomOf="@id/popularHeader"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_weight="1"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</FrameLayout>
