@@ -1,6 +1,8 @@
 package com.example.music_room
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -15,6 +17,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         
         setupPopularAlbums()
+        setupTrendingPlaylist()
     }
     
     private fun setupPopularAlbums() {
@@ -27,6 +30,24 @@ class MainActivity : AppCompatActivity() {
             Album("Starboy", "The Weeknd", R.drawable.album_placeholder)
         )
         
-        albumsRecyclerView.adapter = AlbumAdapter(albums)
+        albumsRecyclerView.adapter = AlbumAdapter(albums) { album ->
+            openPlayer(album.title, album.artist)
+        }
+    }
+    
+    private fun setupTrendingPlaylist() {
+        // Join room button
+        val joinRoomButton = findViewById<com.google.android.material.button.MaterialButton>(R.id.joinRoomButton)
+        joinRoomButton.setOnClickListener {
+            val intent = Intent(this, RoomDetailActivity::class.java)
+            startActivity(intent)
+        }
+    }
+    
+    private fun openPlayer(songTitle: String, artistName: String) {
+        val intent = Intent(this, PlayerActivity::class.java)
+        intent.putExtra("SONG_TITLE", songTitle)
+        intent.putExtra("ARTIST_NAME", artistName)
+        startActivity(intent)
     }
 }

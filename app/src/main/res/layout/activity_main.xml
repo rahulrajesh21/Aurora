@@ -119,7 +119,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
 
-        <!-- Trending Playlist Section -->
+        <!-- Trending Room Section -->
         <LinearLayout
             android:id="@+id/trendingHeader"
             android:layout_width="match_parent"
@@ -135,7 +135,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Trending Playlist"
+                android:text="Trending Room"
                 android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
@@ -149,7 +149,7 @@
 
         </LinearLayout>
 
-        <!-- Trending Playlist Card -->
+        <!-- Trending Room Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/trendingCard"
             android:layout_width="0dp"
@@ -172,98 +172,126 @@
                 android:layout_height="match_parent"
                 android:padding="16dp">
 
-                <ImageView
-                    android:id="@+id/playlistImage"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:src="@drawable/playlist_cover"
-                    android:scaleType="centerCrop"
+                <!-- Live Indicator -->
+                <View
+                    android:id="@+id/liveIndicator"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:background="@drawable/live_indicator"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 
                 <TextView
-                    android:id="@+id/playlistTitle"
+                    android:id="@+id/liveText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LIVE"
+                    android:textColor="@color/primary_green"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="8dp"
+                    app:layout_constraintStart_toEndOf="@id/liveIndicator"
+                    app:layout_constraintTop_toTopOf="@id/liveIndicator"
+                    app:layout_constraintBottom_toBottomOf="@id/liveIndicator"/>
+
+                <!-- Listener Count -->
+                <ImageView
+                    android:id="@+id/listenerIcon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_people"
+                    app:tint="@color/white"
+                    app:layout_constraintEnd_toStartOf="@id/listenerCount"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <TextView
+                    android:id="@+id/listenerCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="24"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:layout_marginStart="6dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+
+                <!-- Room Name -->
+                <TextView
+                    android:id="@+id/roomName"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="PopWorld"
+                    android:text="Chill Vibes Only"
                     android:textColor="@color/white"
                     android:textSize="20sp"
                     android:textStyle="bold"
-                    android:layout_marginStart="16dp"
-                    app:layout_constraintStart_toEndOf="@id/playlistImage"
-                    app:layout_constraintTop_toTopOf="@id/playlistImage"
-                    app:layout_constraintEnd_toEndOf="parent"/>
-
-                <TextView
-                    android:id="@+id/playlistArtist"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="By Kelly Owens"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="4dp"
-                    app:layout_constraintStart_toEndOf="@id/playlistImage"
-                    app:layout_constraintTop_toBottomOf="@id/playlistTitle"
-                    app:layout_constraintEnd_toEndOf="parent"/>
-
-                <TextView
-                    android:id="@+id/playlistSongs"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="120 Songs"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="2dp"
-                    app:layout_constraintStart_toEndOf="@id/playlistImage"
-                    app:layout_constraintTop_toBottomOf="@id/playlistArtist"
-                    app:layout_constraintEnd_toEndOf="parent"/>
-
-                <!-- Waveform -->
-                <ImageView
-                    android:id="@+id/waveform"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/waveform"
                     android:layout_marginTop="16dp"
-                    android:scaleType="fitXY"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/playButtonCard"
-                    app:layout_constraintTop_toBottomOf="@id/playlistImage"
-                    android:layout_marginEnd="12dp"/>
-
-                <ImageView
-                    android:id="@+id/playButtonCard"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:src="@drawable/ic_play_circle"
-                    android:layout_marginTop="8dp"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/playlistImage"/>
+                    app:layout_constraintTop_toBottomOf="@id/liveText"/>
 
-                <!-- Song Info -->
+                <!-- Host Name -->
                 <TextView
-                    android:id="@+id/songTitle"
+                    android:id="@+id/hostName"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Dusk Till Dawn..."
-                    android:textColor="@color/text_secondary"
+                    android:text="Hosted by Alex"
+                    android:textColor="#B0B5C8"
                     android:textSize="14sp"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="4dp"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/waveform"/>
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/roomName"/>
 
+                <!-- Current Song Info -->
                 <TextView
-                    android:id="@+id/songDuration"
+                    android:id="@+id/nowPlayingLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="02:34"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginTop="8dp"
+                    android:text="Now Playing:"
+                    android:textColor="#6A7080"
+                    android:textSize="12sp"
+                    android:layout_marginTop="16dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/hostName"/>
+
+                <TextView
+                    android:id="@+id/currentSong"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="Blinding Lights"
+                    android:textColor="@color/primary_purple"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp"
+                    app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/waveform"/>
+                    app:layout_constraintTop_toBottomOf="@id/nowPlayingLabel"/>
+
+                <TextView
+                    android:id="@+id/currentArtist"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="The Weeknd"
+                    android:textColor="#B0B5C8"
+                    android:textSize="14sp"
+                    android:layout_marginTop="2dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/currentSong"/>
+
+                <!-- Join Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/joinRoomButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Join Room"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    app:cornerRadius="20dp"
+                    android:backgroundTint="@color/primary_green"
+                    android:layout_marginTop="12dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/currentArtist"/>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 

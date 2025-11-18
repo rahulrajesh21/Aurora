@@ -22,6 +22,21 @@
             </intent-filter>
         </activity>
         
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Music_room"/>
+        
+        <activity
+            android:name=".RoomsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Music_room"/>
+        
+        <activity
+            android:name=".RoomDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Music_room"/>
+        
     </application>
 
 </manifest>
