@@ -124,6 +124,42 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun loadCuratedAlbums() {
         binding.popularAlbumsRecyclerView.isVisible = false
+        val itunesApi = com.example.music_room.data.AuroraServiceLocator.itunesApi
+
+        try {
+            val response = itunesApi.getTopAlbums()
+            val results = response.feed.results ?: emptyList()
+            
+            val albums = results.mapNotNull { result ->
+                if (result.name == null || result.artistName == null || result.artworkUrl100 == null) return@mapNotNull null
+                
+                // Get high-res image
+                val highResUrl = result.artworkUrl100.replace("100x100bb", "600x600bb")
+                
+                Album(
+                    title = result.name,
+                    artist = result.artistName,
+                    trackId = result.id ?: "",
+                    provider = "ITUNES",
+                    imageUrl = highResUrl,
+                    durationSeconds = 0,
+                    externalUrl = result.url ?: ""
+                )
+            }
+
+            if (albums.isNotEmpty()) {
+                albumsAdapter.submitList(albums)
+                binding.popularAlbumsRecyclerView.isVisible = true
+            } else {
+                 loadFallbackCuratedAlbums()
+            }
+        } catch (e: Exception) {
+             e.printStackTrace()
+             loadFallbackCuratedAlbums()
+        }
+    }
+
+    private suspend fun loadFallbackCuratedAlbums() {
         val curatedQueries = listOf(
             "The Weeknd After Hours",
             "Taylor Swift Midnights",
@@ -163,7 +199,7 @@ class MainActivity : AppCompatActivity() {
                         title = track.collectionName,
                         artist = track.artistName,
                         trackId = track.collectionId.toString(),
-                        provider = "ITUNES", // Just for display, playback might need logic
+                        provider = "ITUNES",
                         imageUrl = highResUrl,
                         durationSeconds = 0,
                         externalUrl = ""
