@@ -12,8 +12,8 @@ import coil.load
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.databinding.ActivityPlayerBinding
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.MediaItem
 import kotlinx.coroutines.launch
 
 class PlayerActivity : AppCompatActivity() {
