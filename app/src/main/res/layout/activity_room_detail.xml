@@ -4,20 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Base gradient background -->
-    <View
+    <com.example.music_room.ui.GradientView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/gradient_background"/>
-
-    <!-- Blue radial blob for depth -->
-    <View
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="50dp"
-        android:background="@drawable/radial_blue_blob"
-        android:alpha="0.3"/>
+        android:layout_height="match_parent"/>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -81,7 +70,7 @@
                 app:layout_constraintBottom_toBottomOf="@id/backButton"/>
 
             <!-- Album Art -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/albumArtCard"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
@@ -89,6 +78,8 @@
                 app:cardCornerRadius="24dp"
                 app:cardElevation="12dp"
                 app:cardBackgroundColor="#00000000"
+                app:strokeColor="#33FFFFFF"
+                app:strokeWidth="1dp"
                 app:layout_constraintDimensionRatio="1:1"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -102,7 +93,7 @@
                     android:scaleType="centerCrop"
                     android:src="@drawable/album_placeholder"/>
 
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Song Info -->
             <TextView

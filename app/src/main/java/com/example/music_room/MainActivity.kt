@@ -21,13 +21,14 @@ import kotlinx.coroutines.Dispatchers
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val repository = AuroraServiceLocator.repository
-    private val albumsAdapter = AlbumAdapter { album ->
+    private val viewModel: com.example.music_room.ui.viewmodel.MainViewModel by androidx.activity.viewModels()
+    private val albumsAdapter = AlbumAdapter { album, imageView ->
         openPlayer(
             songTitle = album.title,
             artistName = album.artist,
             trackId = album.trackId,
-            provider = album.provider
+            provider = album.provider,
+            sharedElement = imageView
         )
     }
     private var trendingRoom: RoomSnapshotDto? = null
@@ -37,16 +38,13 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(binding.root)
 
         setupMenuButton()
         setupAlbumsList()
         setupTrendingActions()
-
-        lifecycleScope.launch {
-            loadTrendingRoom()
-            loadCuratedAlbums()
-        }
+        observeViewModel()
     }
 
     private fun setupMenuButton() {
@@ -86,31 +84,48 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this@MainActivity, RoomsActivity::class.java))
         }
         binding.popularSeeAll.setOnClickListener {
-            lifecycleScope.launch { loadCuratedAlbums() }
+            viewModel.refreshData()
         }
     }
 
-    private suspend fun loadTrendingRoom() {
-        binding.joinRoomButton.isEnabled = false
-        binding.roomName.text = getString(R.string.loading)
-        repository.getRooms()
-            .onSuccess { rooms ->
-                trendingRoom = rooms.firstOrNull()
-                binding.joinRoomButton.isEnabled = trendingRoom != null
-                if (trendingRoom == null) {
-                    binding.roomName.text = getString(R.string.rooms_empty)
-                    binding.hostName.text = ""
-                    binding.currentSong.text = getString(R.string.no_track_playing)
-                    binding.currentArtist.text = getString(R.string.no_track_artist)
-                    binding.listenerCount.text = "0"
-                } else {
-                    applyTrendingSnapshot(trendingRoom!!)
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            androidx.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    // Trending Room
+                    trendingRoom = state.trendingRoom
+                    binding.joinRoomButton.isEnabled = trendingRoom != null
+                    if (trendingRoom == null) {
+                        if (state.isLoading && state.trendingRoom == null) {
+                            binding.roomName.text = getString(R.string.loading)
+                        } else {
+                            binding.roomName.text = getString(R.string.rooms_empty)
+                            binding.hostName.text = ""
+                            binding.currentSong.text = getString(R.string.no_track_playing)
+                            binding.currentArtist.text = getString(R.string.no_track_artist)
+                            binding.listenerCount.text = "0"
+                        }
+                    } else {
+                        applyTrendingSnapshot(trendingRoom!!)
+                    }
+
+                    // Albums
+                    if (state.isAlbumsLoading) {
+                        binding.popularAlbumsRecyclerView.isVisible = false
+                        binding.popularAlbumsSkeleton.isVisible = true
+                    } else {
+                        binding.popularAlbumsSkeleton.isVisible = false
+                        binding.popularAlbumsRecyclerView.isVisible = true
+                        albumsAdapter.submitList(state.popularAlbums)
+                    }
+
+                    // Error
+                    if (state.error != null) {
+                        Toast.makeText(this@MainActivity, state.error, Toast.LENGTH_LONG).show()
+                    }
                 }
             }
-            .onFailure { error ->
-                binding.joinRoomButton.isEnabled = false
-                Toast.makeText(this, error.message ?: getString(R.string.loading), Toast.LENGTH_LONG).show()
-            }
+        }
     }
 
     private fun applyTrendingSnapshot(snapshot: RoomSnapshotDto) {
@@ -122,151 +137,8 @@ class MainActivity : AppCompatActivity() {
         binding.currentArtist.text = track?.artist ?: getString(R.string.no_track_artist)
     }
 
-    private suspend fun loadCuratedAlbums() {
-        binding.popularAlbumsRecyclerView.isVisible = false
-        val itunesApi = com.example.music_room.data.AuroraServiceLocator.itunesApi
-
-        try {
-            val response = itunesApi.getTopAlbums()
-            val results = response.feed.results ?: emptyList()
-            
-            val albums = results.mapNotNull { result ->
-                if (result.name == null || result.artistName == null || result.artworkUrl100 == null) return@mapNotNull null
-                
-                // Get high-res image
-                val highResUrl = result.artworkUrl100.replace("100x100bb", "600x600bb")
-                
-                Album(
-                    title = result.name,
-                    artist = result.artistName,
-                    trackId = result.id ?: "",
-                    provider = "ITUNES",
-                    imageUrl = highResUrl,
-                    durationSeconds = 0,
-                    externalUrl = result.url ?: ""
-                )
-            }
-
-            if (albums.isNotEmpty()) {
-                albumsAdapter.submitList(albums)
-                binding.popularAlbumsRecyclerView.isVisible = true
-            } else {
-                 loadFallbackCuratedAlbums()
-            }
-        } catch (e: Exception) {
-             e.printStackTrace()
-             loadFallbackCuratedAlbums()
-        }
-    }
-
-    private suspend fun loadFallbackCuratedAlbums() {
-        val curatedQueries = listOf(
-            "The Weeknd After Hours",
-            "Taylor Swift Midnights",
-            "SZA SOS",
-            "Harry Styles Harry's House",
-            "Bad Bunny Un Verano Sin Ti",
-            "Olivia Rodrigo GUTS",
-            "Drake For All The Dogs",
-            "Beyonce Renaissance",
-            "Kendrick Lamar Mr. Morale",
-            "Billie Eilish Hit Me Hard and Soft"
-        )
-
-        val albums = mutableListOf<Album>()
-        val itunesApi = com.example.music_room.data.AuroraServiceLocator.itunesApi
-
-        try {
-            // Parallel fetching for ultra-fast loading
-            val deferredResults = curatedQueries.map { query ->
-                lifecycleScope.async(Dispatchers.IO) {
-                    try {
-                        itunesApi.searchAlbums(query).results.firstOrNull()
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-            }
-
-            val results = deferredResults.awaitAll()
-
-            results.filterNotNull().forEach { track ->
-                // Get high-res image by replacing 100x100 with 600x600
-                val highResUrl = track.artworkUrl100.replace("100x100bb", "600x600bb")
-                
-                albums.add(
-                    Album(
-                        title = track.collectionName,
-                        artist = track.artistName,
-                        trackId = track.collectionId.toString(),
-                        provider = "ITUNES",
-                        imageUrl = highResUrl,
-                        durationSeconds = 0,
-                        externalUrl = ""
-                    )
-                )
-            }
-
-            if (albums.isNotEmpty()) {
-                albumsAdapter.submitList(albums)
-                binding.popularAlbumsRecyclerView.isVisible = true
-            } else {
-                 loadPopularAlbums(DEFAULT_SEARCH_QUERY)
-            }
-        } catch (e: Exception) {
-             loadPopularAlbums(DEFAULT_SEARCH_QUERY)
-        }
-    }
-
-    private suspend fun loadPopularAlbums(query: String) {
-        binding.popularAlbumsRecyclerView.isVisible = false
-        repository.search(query)
-            .onSuccess { response ->
-                val mapped = response.tracks.map { track ->
-                    Album(
-                        title = track.title,
-                        artist = track.artist,
-                        trackId = track.id,
-                        provider = track.provider,
-                        imageUrl = getHighResThumbnailUrl(track.thumbnailUrl),
-                        durationSeconds = track.durationSeconds,
-                        externalUrl = track.externalUrl
-                    )
-                }
-                albumsAdapter.submitList(mapped)
-            }
-            .onFailure { error ->
-                Toast.makeText(this, error.message ?: getString(R.string.loading), Toast.LENGTH_LONG).show()
-            }
-        binding.popularAlbumsRecyclerView.isVisible = true
-    }
-
-    private fun getHighResThumbnailUrl(url: String?): String? {
-        if (url == null) return null
-        if (url.contains("i.ytimg.com")) {
-            return url.replace("default.jpg", "sddefault.jpg")
-                .replace("mqdefault.jpg", "sddefault.jpg")
-                .replace("hqdefault.jpg", "sddefault.jpg")
-        }
-        return url
-    }
-
     private fun promptSearch() {
-        val editText = com.google.android.material.textfield.TextInputEditText(this).apply {
-            hint = getString(R.string.search_hint)
-        }
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.search_hint)
-            .setView(editText)
-            .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                val query = editText.text?.toString()?.trim().orEmpty()
-                if (query.isNotEmpty()) {
-                    lifecycleScope.launch { loadPopularAlbums(query) }
-                }
-                dialog.dismiss()
-            }
-            .setNegativeButton(R.string.dismiss, null)
-            .show()
+        startActivity(Intent(this, SearchActivity::class.java))
     }
 
     private fun openTrendingRoom() {
@@ -279,24 +151,30 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    private fun openPlayer(songTitle: String, artistName: String, trackId: String?, provider: String?) {
+    private fun openPlayer(
+        songTitle: String,
+        artistName: String,
+        trackId: String?,
+        provider: String?,
+        sharedElement: android.widget.ImageView
+    ) {
         val intent = Intent(this, PlayerActivity::class.java).apply {
             putExtra(PlayerActivity.EXTRA_SONG_TITLE, songTitle)
             putExtra(PlayerActivity.EXTRA_ARTIST_NAME, artistName)
             putExtra(PlayerActivity.EXTRA_TRACK_ID, trackId)
             putExtra(PlayerActivity.EXTRA_PROVIDER, provider)
+            putExtra(PlayerActivity.EXTRA_TRANSITION_NAME, sharedElement.transitionName)
         }
-        startActivity(intent)
+        val options = androidx.core.app.ActivityOptionsCompat.makeSceneTransitionAnimation(
+            this,
+            sharedElement,
+            sharedElement.transitionName
+        )
+        startActivity(intent, options.toBundle())
     }
 
     override fun onResume() {
         super.onResume()
-        lifecycleScope.launch {
-            loadTrendingRoom()
-        }
-    }
-
-    companion object {
-        private const val DEFAULT_SEARCH_QUERY = "This week top hits"
+        viewModel.refreshTrendingRoom()
     }
 }

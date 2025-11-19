@@ -12,7 +12,8 @@ import com.example.music_room.data.remote.model.TrackDto
 
 class QueueAdapter(
     private val onVote: (position: Int) -> Unit,
-    private val onRemove: (position: Int) -> Unit
+    private val onRemove: (position: Int) -> Unit,
+    private val onItemMove: (from: Int, to: Int) -> Unit
 ) : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>() {
 
     private val tracks = mutableListOf<TrackDto>()
@@ -21,6 +22,20 @@ class QueueAdapter(
         tracks.clear()
         tracks.addAll(items)
         notifyDataSetChanged()
+    }
+
+    fun onItemMove(fromPosition: Int, toPosition: Int) {
+        if (fromPosition < toPosition) {
+            for (i in fromPosition until toPosition) {
+                java.util.Collections.swap(tracks, i, i + 1)
+            }
+        } else {
+            for (i in fromPosition downTo toPosition + 1) {
+                java.util.Collections.swap(tracks, i, i - 1)
+            }
+        }
+        notifyItemMoved(fromPosition, toPosition)
+        onItemMove(fromPosition, toPosition)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QueueViewHolder {

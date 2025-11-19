@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.example.music_room.data.AuroraServiceLocator
@@ -49,6 +50,13 @@ class PlayerActivity : AppCompatActivity() {
         binding.previousButton.setOnClickListener { lifecycleScope.launch { previousTrack() } }
         binding.shuffleButton.setOnClickListener { lifecycleScope.launch { shuffleQueue() } }
         binding.repeatButton.setOnClickListener { lifecycleScope.launch { restartTrack() } }
+
+        binding.lyricsButton.setOnClickListener {
+            binding.lyricsOverlay.isVisible = true
+        }
+        binding.closeLyricsButton.setOnClickListener {
+            binding.lyricsOverlay.isVisible = false
+        }
 
         lifecycleScope.launch { refreshPlaybackState() }
     }
@@ -105,13 +113,24 @@ class PlayerActivity : AppCompatActivity() {
         binding.playPauseButton.setImageResource(
             if (state.isPlaying) R.drawable.ic_pause_large else R.drawable.ic_play_circle
         )
+        val transitionName = intent.getStringExtra(EXTRA_TRANSITION_NAME)
+        if (transitionName != null) {
+            binding.albumArtImage.transitionName = transitionName
+            supportPostponeEnterTransition()
+        }
+
         if (!track?.thumbnailUrl.isNullOrBlank()) {
             binding.albumArtImage.load(track?.thumbnailUrl) {
                 placeholder(R.drawable.album_placeholder)
                 error(R.drawable.album_placeholder)
+                listener(
+                    onSuccess = { _, _ -> supportStartPostponedEnterTransition() },
+                    onError = { _, _ -> supportStartPostponedEnterTransition() }
+                )
             }
         } else {
             binding.albumArtImage.setImageResource(R.drawable.album_placeholder)
+            supportStartPostponedEnterTransition()
         }
         binding.currentTime.text = formatTime(state.positionSeconds)
         val duration = track?.durationSeconds ?: state.positionSeconds
@@ -219,5 +238,6 @@ class PlayerActivity : AppCompatActivity() {
         const val EXTRA_ARTIST_NAME = "extra_artist_name"
         const val EXTRA_TRACK_ID = "extra_track_id"
         const val EXTRA_PROVIDER = "extra_provider"
+        const val EXTRA_TRANSITION_NAME = "extra_transition_name"
     }
 }

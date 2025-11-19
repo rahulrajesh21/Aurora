@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 
 class AlbumAdapter(
-    private val onAlbumClick: (Album) -> Unit
+    private val onAlbumClick: (Album, ImageView) -> Unit
 ) : RecyclerView.Adapter<AlbumAdapter.AlbumViewHolder>() {
 
     private val albums = mutableListOf<Album>()
@@ -34,6 +34,10 @@ class AlbumAdapter(
     
     override fun onBindViewHolder(holder: AlbumViewHolder, position: Int) {
         val album = albums[position]
+        
+        // Set unique transition name for each item
+        holder.albumImage.transitionName = "album_art_${album.trackId}"
+        
         val imageResId = album.imageResId
         if (imageResId != null) {
             holder.albumImage.setImageResource(imageResId)
@@ -50,12 +54,12 @@ class AlbumAdapter(
         
         // Click listener for play button
         holder.playButton.setOnClickListener {
-            onAlbumClick(album)
+            onAlbumClick(album, holder.albumImage)
         }
         
         // Click listener for entire card
         holder.itemView.setOnClickListener {
-            onAlbumClick(album)
+            onAlbumClick(album, holder.albumImage)
         }
     }
     

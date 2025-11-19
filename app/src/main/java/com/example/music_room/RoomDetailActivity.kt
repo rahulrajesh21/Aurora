@@ -34,7 +34,11 @@ class RoomDetailActivity : AppCompatActivity() {
     private val playbackSocket by lazy { AuroraServiceLocator.createPlaybackSocket() }
     private val queueAdapter = QueueAdapter(
         onVote = { position -> lifecycleScope.launch { promoteTrack(position) } },
-        onRemove = { position -> lifecycleScope.launch { removeTrack(position) } }
+        onRemove = { position -> lifecycleScope.launch { removeTrack(position) } },
+        onItemMove = { from, to -> 
+            // Optimistic update is handled by adapter, just sync with server when drop happens
+            // We'll handle the actual API call in the ItemTouchHelper callback's clearView
+        }
     )
 
     private val roomId: String by lazy { intent.getStringExtra(EXTRA_ROOM_ID).orEmpty() }
@@ -61,6 +65,7 @@ class RoomDetailActivity : AppCompatActivity() {
         supportActionBar?.hide()
 
         binding = ActivityRoomDetailBinding.inflate(layoutInflater)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(binding.root)
 
         binding.roomNameTitle.text = roomName
@@ -84,6 +89,86 @@ class RoomDetailActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@RoomDetailActivity)
             adapter = queueAdapter
         }
+
+        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.Callback() {
+            override fun getMovementFlags(
+                recyclerView: androidx.recyclerview.widget.RecyclerView,
+                viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder
+            ): Int {
+                val dragFlags = androidx.recyclerview.widget.ItemTouchHelper.UP or androidx.recyclerview.widget.ItemTouchHelper.DOWN
+                val swipeFlags = 0 // Disable swipe for now as we have a long-press remove
+                return makeMovementFlags(dragFlags, swipeFlags)
+            }
+
+            override fun onMove(
+                recyclerView: androidx.recyclerview.widget.RecyclerView,
+                viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder,
+                target: androidx.recyclerview.widget.RecyclerView.ViewHolder
+            ): Boolean {
+                queueAdapter.onItemMove(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, direction: Int) {
+                // No-op
+            }
+
+            override fun clearView(
+                recyclerView: androidx.recyclerview.widget.RecyclerView,
+                viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder
+            ) {
+                super.clearView(recyclerView, viewHolder)
+                // Sync with server after drop
+                // We need to track the original position vs new position if we want to be precise, 
+                // but for now let's just rely on the fact that the user dropped it.
+                // However, the API takes from/to. The adapter has already updated the list.
+                // A better approach for the API call is to do it here if we tracked the 'from' position.
+                // Since we don't easily have 'from' here without extra state, we can rely on the adapter's callback 
+                // if we want, OR we can just trigger a full queue sync if needed.
+                // Actually, let's update the adapter callback to handle the API call? 
+                // No, clearView is better for "end of drag".
+                // Let's use a simple state var to track 'from' in onSelectedChanged if needed, 
+                // or just let the user drag and we sync the whole queue? No, reorder API is specific.
+                
+                // Simpler: We'll just use the `onItemMove` in adapter to track changes? 
+                // No, `onItemMove` is called repeatedly during drag.
+                
+                // Let's just implement reorderQueue in the adapter callback? 
+                // No, that would spam the API.
+                
+                // Correct approach: Track 'from' and 'to'
+            }
+            
+            var dragFrom = -1
+            var dragTo = -1
+
+            override fun onSelectedChanged(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
+                    viewHolder?.let { dragFrom = it.bindingAdapterPosition }
+                }
+            }
+            
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                dragTo = viewHolder.bindingAdapterPosition
+                if (dragFrom != -1 && dragTo != -1 && dragFrom != dragTo) {
+                    lifecycleScope.launch {
+                        repository.reorderQueue(dragFrom, dragTo)
+                            .onSuccess { 
+                                // Queue updated
+                            }
+                            .onFailure { 
+                                Toast.makeText(this@RoomDetailActivity, R.string.queue_update_failed, Toast.LENGTH_SHORT).show()
+                                refreshQueue() // Revert on failure
+                            }
+                    }
+                }
+                dragFrom = -1
+                dragTo = -1
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(binding.queueRecyclerView)
 
         lifecycleScope.launch {
             joinRoomIfNeeded()

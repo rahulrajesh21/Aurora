@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="160dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="16dp"
+    app:cardBackgroundColor="@android:color/transparent"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="#33FFFFFF"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Album Art Skeleton -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="136dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@android:color/transparent">
+            
+            <com.example.music_room.ui.ShimmerView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+                
+        </androidx.cardview.widget.CardView>
+
+        <!-- Title Skeleton -->
+        <com.example.music_room.ui.ShimmerView
+            android:layout_width="100dp"
+            android:layout_height="16dp"
+            android:layout_marginTop="12dp"/>
+
+        <!-- Artist Skeleton -->
+        <com.example.music_room.ui.ShimmerView
+            android:layout_width="80dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="8dp"/>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

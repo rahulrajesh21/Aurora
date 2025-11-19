@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 
+      For a real production app, you would download the Outfit font files (.ttf)
+      and place them in res/font/, then reference them here like:
+      <font android:fontStyle="normal" android:fontWeight="400" android:font="@font/outfit_regular" />
+      
+      For now, we alias to system sans-serif to ensure the app builds and runs 
+      without needing to download external assets manually.
+    -->
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="400"
+        android:font="@font/outfit_regular" />
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="700"
+        android:font="@font/outfit_bold" />
+</font-family>

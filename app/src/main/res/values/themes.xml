@@ -9,9 +9,20 @@
         <item name="colorSecondary">@color/primary_green</item>
         <item name="colorSecondaryVariant">@color/primary_green</item>
         <item name="colorOnSecondary">@color/black</item>
+        
+        <!-- Typography -->
+        <item name="android:fontFamily">@font/outfit</item>
+        <item name="fontFamily">@font/outfit</item>
+
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <!-- Navigation bar color. -->
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        
+        <!-- Transitions -->
+        <item name="android:windowContentTransitions">true</item>
+        <item name="android:windowActivityTransitions">true</item>
         <!-- Hide action bar -->
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
