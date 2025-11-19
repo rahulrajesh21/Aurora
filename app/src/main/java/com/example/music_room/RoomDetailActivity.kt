@@ -22,6 +22,7 @@ import com.example.music_room.ui.AddSongBottomSheet
 import com.example.music_room.ui.JoinRoomBottomSheet
 import com.example.music_room.ui.QueueAdapter
 import com.google.android.material.slider.Slider
+import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import kotlinx.coroutines.launch
@@ -323,17 +324,35 @@ class RoomDetailActivity : AppCompatActivity() {
         binding.repeatButton.setOnClickListener { lifecycleScope.launch { restartTrack() } }
         binding.playbackSlider.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
-                binding.playbackElapsed.text = formatTime(value.toInt())
+                // Show rounded time while the user is dragging
+                val rounded = kotlin.math.round(value).toInt()
+                binding.playbackElapsed.text = formatTime(rounded)
             }
         }
         binding.playbackSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
             override fun onStartTrackingTouch(slider: Slider) {
+                // Prevent the periodic ticker from updating the UI while the user drags
                 sliderBeingDragged = true
             }
 
             override fun onStopTrackingTouch(slider: Slider) {
+                // User finished dragging — apply an optimistic update locally then send the seek
                 sliderBeingDragged = false
-                lifecycleScope.launch { seekTo(slider.value.toInt()) }
+                val rounded = kotlin.math.round(slider.value).toInt()
+
+                // Optimistically update UI and local slider base so the ticker continues from the
+                // new position while the server processes the seek.
+                binding.playbackElapsed.text = formatTime(rounded)
+                sliderBasePositionSeconds = rounded.toFloat()
+                sliderBaseTimestamp = SystemClock.elapsedRealtime()
+
+                // Jump local playback immediately so audio matches the slider position.
+                exoPlayer?.seekTo((rounded * 1000L).coerceAtLeast(0L))
+
+                // Send seek to server (seekTo will apply the returned playback state on success)
+                lifecycleScope.launch {
+                    seekTo(rounded)
+                }
             }
         })
     }
@@ -425,12 +444,24 @@ class RoomDetailActivity : AppCompatActivity() {
     private fun ensurePlayerForState(state: PlaybackStateDto) {
         val streamUrl = state.streamUrl ?: return
         val player = exoPlayer ?: ExoPlayer.Builder(this).build().also { exoPlayer = it }
-        if (currentStreamUrl != streamUrl) {
+        val streamChanged = currentStreamUrl != streamUrl
+        if (streamChanged) {
             player.setMediaItem(MediaItem.fromUri(streamUrl))
             player.prepare()
             currentStreamUrl = streamUrl
         }
+
+        syncPlayerPosition(player, state, forceSeek = streamChanged)
         player.playWhenReady = state.isPlaying
+    }
+
+    private fun syncPlayerPosition(player: ExoPlayer, state: PlaybackStateDto, forceSeek: Boolean = false) {
+        val targetMs = (state.positionSeconds.coerceAtLeast(0) * 1000L)
+    val currentMs = player.currentPosition
+    val currentIsUnset = currentMs <= 0 || currentMs == C.TIME_UNSET
+        if (forceSeek || currentIsUnset || kotlin.math.abs(currentMs - targetMs) > PLAYER_SYNC_TOLERANCE_MS) {
+            player.seekTo(targetMs)
+        }
     }
 
     private fun schedulePlaybackTicker() {
@@ -489,5 +520,6 @@ class RoomDetailActivity : AppCompatActivity() {
         const val EXTRA_ROOM_NAME = "extra_room_name"
         const val EXTRA_ROOM_LOCKED = "extra_room_locked"
         private const val TAG = "RoomDetailActivity"
+        private const val PLAYER_SYNC_TOLERANCE_MS = 750L
     }
 }
