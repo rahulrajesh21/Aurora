@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -46,7 +47,7 @@
                 android:id="@+id/nowPlayingText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Now Playing"
+                android:text="@string/now_playing_label"
                 android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -94,7 +95,7 @@
                 android:id="@+id/songTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Reminder"
+                android:text="@string/reminder_label"
                 android:textColor="@color/white"
                 android:textSize="32sp"
                 android:textStyle="bold"
@@ -109,8 +110,8 @@
                 android:id="@+id/artistName"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="The Weeknd"
-                android:textColor="#B0B5C8"
+                tools:text="The Weeknd"
+                android:textColor="@color/text_tertiary"
                 android:textSize="18sp"
                 android:gravity="center"
                 android:layout_marginTop="8dp"
@@ -151,7 +152,7 @@
                 android:id="@+id/currentTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="00:23"
+                tools:text="00:23"
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 android:layout_marginTop="16dp"
@@ -162,7 +163,7 @@
                 android:id="@+id/totalTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="02:34"
+                tools:text="02:34"
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 android:layout_marginTop="16dp"
@@ -227,9 +228,9 @@
                 android:id="@+id/lyricsButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Lyrics"
+                android:text="@string/lyrics_label"
                 android:textColor="@color/white"
-                android:backgroundTint="#33FFFFFF"
+                android:backgroundTint="@color/glass_stroke"
                 app:cornerRadius="20dp"
                 app:icon="@drawable/ic_music_note"
                 app:iconTint="@color/white"
@@ -247,7 +248,7 @@
         android:id="@+id/lyricsOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#CC000000"
+        android:background="@color/scrim_color"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
@@ -283,6 +284,6 @@
 
     </FrameLayout>
 
-    </ScrollView>
+
 
 </FrameLayout>

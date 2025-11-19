@@ -3,10 +3,13 @@ package com.example.music_room
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.remote.model.RoomSnapshotDto
@@ -21,7 +24,7 @@ import kotlinx.coroutines.Dispatchers
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: com.example.music_room.ui.viewmodel.MainViewModel by androidx.activity.viewModels()
+    private val viewModel: com.example.music_room.ui.viewmodel.MainViewModel by viewModels()
     private val albumsAdapter = AlbumAdapter { album, imageView ->
         openPlayer(
             songTitle = album.title,
@@ -90,7 +93,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun observeViewModel() {
         lifecycleScope.launch {
-            androidx.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     // Trending Room
                     trendingRoom = state.trendingRoom

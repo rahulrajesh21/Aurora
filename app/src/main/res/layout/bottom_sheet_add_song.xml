@@ -23,7 +23,7 @@
             android:id="@+id/addSongTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Search tracks"
+            android:text="@string/search_tracks_hint"
             android:textColor="@color/white"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -33,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textColor="#C8CCDA"
+            android:textColor="@color/text_secondary_light"
             android:textSize="14sp"
             android:text="@string/search_subtitle" />
 
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             app:cardCornerRadius="20dp"
-            app:cardBackgroundColor="#2A2E3F"
+            app:cardBackgroundColor="@color/card_bg_lighter"
             app:cardElevation="0dp"
             android:padding="4dp">
 
@@ -57,8 +57,8 @@
                 app:boxBackgroundColor="@android:color/transparent"
                 app:boxStrokeWidth="0dp"
                 app:boxStrokeWidthFocused="0dp"
-                app:hintTextColor="#959DB6"
-                android:textColorHint="#959DB6">
+                app:hintTextColor="@color/text_hint"
+                android:textColorHint="@color/text_hint">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/searchInput"
@@ -66,7 +66,7 @@
                     android:layout_height="wrap_content"
                     android:inputType="text"
                     android:textColor="@color/white"
-                    android:textColorHint="#959DB6"
+                    android:textColorHint="@color/text_hint"
                     android:background="@android:color/transparent"/>
             </com.google.android.material.textfield.TextInputLayout>
 

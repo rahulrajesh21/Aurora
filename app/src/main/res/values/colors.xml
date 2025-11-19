@@ -22,4 +22,22 @@
     <color name="menu_border">#DEBDFF</color>
     <color name="accent_color">#E1FFBA</color>
     <color name="chip_background">#2A3252</color>
+
+    <!-- Extracted colors -->
+    <color name="text_tertiary">#B0B5C8</color>
+    <color name="text_subtitle">#80859A</color>
+    <color name="text_caption">#6A7080</color>
+    <color name="text_hint">#959DB6</color>
+    <color name="text_hint_medium">#8790AC</color>
+    <color name="text_secondary_light">#C8CCDA</color>
+    
+    <color name="glass_stroke">#33FFFFFF</color>
+    <color name="scrim_color">#CC000000</color>
+    
+    <color name="card_bg_dark">#1C1F2C</color>
+    <color name="card_bg_medium">#1F2233</color>
+    <color name="card_bg_lighter">#2A2E3F</color>
+    
+    <color name="track_inactive">#2F395A</color>
+    <color name="halo_green">#3300E676</color>
 </resources>

@@ -48,4 +48,22 @@
     <string name="create_room_button">Create Room</string>
     <string name="create_room_vibe_preview_default">We’ll show this vibe on invites.</string>
     <string name="create_room_vibe_preview">Vibe preview: %1$s</string>
+    <string name="reminder_label">Reminder</string>
+    <string name="lyrics_label">Lyrics</string>
+    <string name="join_room_title_default">Join room</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="leave_room_button">Leave</string>
+    <string name="up_next_label">Up Next</string>
+    <string name="recent_searches_label">Recent Searches</string>
+    <string name="search_tracks_hint">Search tracks</string>
+    <string name="music_rooms_title">Music Rooms</string>
+    <string name="active_rooms_subtitle">Active Rooms</string>
+    <string name="menu_label">☰ Menu</string>
+    <string name="welcome_message">Hi, Welcome Back 👋</string>
+    <string name="welcome_subtitle">Listen to Your\nFavourite Music</string>
+    <string name="trending_room_label">Trending Room</string>
+    <string name="see_all_button">See All</string>
+    <string name="join_room_button">Join Room</string>
+    <string name="popular_albums_label">Popular Albums</string>
+    <string name="live_label">LIVE</string>
 </resources>

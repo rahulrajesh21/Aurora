@@ -63,7 +63,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
                 android:text="@string/create_room_subtitle"
-                android:textColor="#C8CCDA"
+                android:textColor="@color/text_secondary_light"
                 android:textSize="14sp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -94,7 +94,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/create_room_section_basics"
-                        android:textColor="#C8CCDA"
+                        android:textColor="@color/text_secondary_light"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -115,7 +115,7 @@
                             android:layout_height="wrap_content"
                             android:inputType="textCapWords"
                             android:textColor="@color/white"
-                            android:textColorHint="#959DB6" />
+                            android:textColorHint="@color/text_hint" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -134,7 +134,7 @@
                             android:inputType="textCapSentences"
                             android:maxLines="3"
                             android:textColor="@color/white"
-                            android:textColorHint="#959DB6" />
+                            android:textColorHint="@color/text_hint" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <TextView
@@ -143,7 +143,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="@string/create_room_vibe_preview_default"
-                        android:textColor="#8790AC"
+                        android:textColor="@color/text_hint_medium"
                         android:textSize="12sp" />
 
                     <com.google.android.material.chip.ChipGroup
@@ -196,7 +196,7 @@
                             android:layout_height="wrap_content"
                             android:inputType="number"
                             android:textColor="@color/white"
-                            android:textColorHint="#959DB6" />
+                            android:textColorHint="@color/text_hint" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <TextView
@@ -205,7 +205,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:text="@string/create_room_section_access"
-                        android:textColor="#C8CCDA"
+                        android:textColor="@color/text_secondary_light"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05" />

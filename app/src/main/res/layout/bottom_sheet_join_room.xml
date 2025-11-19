@@ -23,7 +23,7 @@
             android:id="@+id/joinRoomTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Join room"
+            android:text="@string/join_room_title_default"
             android:textColor="@color/white"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -34,7 +34,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/join_room_subtitle"
-            android:textColor="#C8CCDA"
+            android:textColor="@color/text_secondary_light"
             android:textSize="14sp" />
 
         <com.google.android.material.card.MaterialCardView
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             app:cardCornerRadius="20dp"
-            app:cardBackgroundColor="#1C1F2C"
+            app:cardBackgroundColor="@color/card_bg_dark"
             app:cardElevation="0dp"
             android:padding="12dp">
 
@@ -67,7 +67,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
                         android:textColor="@color/white"
-                        android:textColorHint="#959DB6" />
+                        android:textColorHint="@color/text_hint" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -87,7 +87,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="text"
                         android:textColor="@color/white"
-                        android:textColorHint="#959DB6" />
+                        android:textColorHint="@color/text_hint" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
@@ -120,7 +120,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Cancel"
+            android:text="@string/cancel_button"
             android:textColor="@color/white"
             android:textSize="14sp"
             style="@style/Widget.Material3.Button.OutlinedButton" />

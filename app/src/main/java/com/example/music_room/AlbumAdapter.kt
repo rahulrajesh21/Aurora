@@ -10,16 +10,8 @@ import coil.load
 
 class AlbumAdapter(
     private val onAlbumClick: (Album, ImageView) -> Unit
-) : RecyclerView.Adapter<AlbumAdapter.AlbumViewHolder>() {
+) : androidx.recyclerview.widget.ListAdapter<Album, AlbumAdapter.AlbumViewHolder>(AlbumDiffCallback()) {
 
-    private val albums = mutableListOf<Album>()
-
-    fun submitList(items: List<Album>) {
-        albums.clear()
-        albums.addAll(items)
-        notifyDataSetChanged()
-    }
-    
     class AlbumViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val albumImage: ImageView = view.findViewById(R.id.albumImage)
         val albumTitle: TextView = view.findViewById(R.id.albumTitleInside)
@@ -33,7 +25,7 @@ class AlbumAdapter(
     }
     
     override fun onBindViewHolder(holder: AlbumViewHolder, position: Int) {
-        val album = albums[position]
+        val album = getItem(position)
         
         // Set unique transition name for each item
         holder.albumImage.transitionName = "album_art_${album.trackId}"
@@ -63,5 +55,13 @@ class AlbumAdapter(
         }
     }
     
-    override fun getItemCount() = albums.size
+    class AlbumDiffCallback : androidx.recyclerview.widget.DiffUtil.ItemCallback<Album>() {
+        override fun areItemsTheSame(oldItem: Album, newItem: Album): Boolean {
+            return oldItem.trackId == newItem.trackId
+        }
+
+        override fun areContentsTheSame(oldItem: Album, newItem: Album): Boolean {
+            return oldItem == newItem
+        }
+    }
 }

@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:cardBackgroundColor="#2A2E3F"
+    app:cardBackgroundColor="@color/card_bg_lighter"
     android:alpha="0.75">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -27,7 +28,7 @@
             android:id="@+id/songTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Starboy"
+            tools:text="Starboy"
             android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -40,8 +41,8 @@
             android:id="@+id/songArtist"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="The Weeknd"
-            android:textColor="#B0B5C8"
+            tools:text="The Weeknd"
+            android:textColor="@color/text_tertiary"
             android:textSize="14sp"
             android:layout_marginStart="16dp"
             android:layout_marginTop="4dp"
@@ -72,7 +73,7 @@
                 android:id="@+id/voteCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="12"
+                tools:text="12"
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 android:textStyle="bold"
