@@ -364,21 +364,16 @@ class RoomDetailActivity : AppCompatActivity() {
         val track = state.currentTrack
         binding.currentSongTitle.text = track?.title ?: getString(R.string.no_track_playing)
         binding.currentSongArtist.text = track?.artist ?: getString(R.string.no_track_artist)
-        binding.nowPlayingLabel.text = if (state.isPlaying) getString(R.string.now_playing_label) else getString(R.string.paused_label)
         binding.playPauseButton.setImageResource(if (state.isPlaying) R.drawable.ic_pause_large else R.drawable.ic_play_circle)
 
         if (!track?.thumbnailUrl.isNullOrBlank()) {
-            binding.albumArtImage.load(track.thumbnailUrl) {
-                placeholder(R.drawable.album_placeholder)
-                error(R.drawable.album_placeholder)
-            }
-            binding.currentSongImage.load(track.thumbnailUrl) {
+            val highResUrl = getHighResThumbnailUrl(track.thumbnailUrl)
+            binding.albumArtImage.load(highResUrl) {
                 placeholder(R.drawable.album_placeholder)
                 error(R.drawable.album_placeholder)
             }
         } else {
             binding.albumArtImage.setImageResource(R.drawable.album_placeholder)
-            binding.currentSongImage.setImageResource(R.drawable.album_placeholder)
         }
 
         val duration = track?.durationSeconds?.takeIf { it > 0 } ?: state.positionSeconds.coerceAtLeast(1)
@@ -398,6 +393,16 @@ class RoomDetailActivity : AppCompatActivity() {
         } else {
             stopPlaybackTicker()
         }
+    }
+
+    private fun getHighResThumbnailUrl(url: String?): String? {
+        if (url == null) return null
+        if (url.contains("i.ytimg.com")) {
+            return url.replace("default.jpg", "sddefault.jpg")
+                .replace("mqdefault.jpg", "sddefault.jpg")
+                .replace("hqdefault.jpg", "sddefault.jpg")
+        }
+        return url
     }
 
     private suspend fun togglePlayPause() {

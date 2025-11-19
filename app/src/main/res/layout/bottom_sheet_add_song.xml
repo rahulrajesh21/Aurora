@@ -42,9 +42,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             app:cardCornerRadius="20dp"
-            app:cardBackgroundColor="#1C1F2C"
+            app:cardBackgroundColor="#2A2E3F"
             app:cardElevation="0dp"
-            android:padding="8dp">
+            android:padding="4dp">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/searchLayout"
@@ -54,7 +54,11 @@
                 android:hint="@string/search_hint"
                 app:startIconDrawable="@drawable/ic_search"
                 app:startIconTint="@color/primary_green"
-                app:boxBackgroundColor="@android:color/transparent">
+                app:boxBackgroundColor="@android:color/transparent"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
+                app:hintTextColor="#959DB6"
+                android:textColorHint="#959DB6">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/searchInput"
@@ -62,7 +66,8 @@
                     android:layout_height="wrap_content"
                     android:inputType="text"
                     android:textColor="@color/white"
-                    android:textColorHint="#959DB6" />
+                    android:textColorHint="#959DB6"
+                    android:background="@android:color/transparent"/>
             </com.google.android.material.textfield.TextInputLayout>
 
         </com.google.android.material.card.MaterialCardView>

@@ -14,6 +14,9 @@ import com.example.music_room.databinding.ActivityMainBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.Dispatchers
 
 class MainActivity : AppCompatActivity() {
 
@@ -42,7 +45,7 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             loadTrendingRoom()
-            loadPopularAlbums(DEFAULT_SEARCH_QUERY)
+            loadCuratedAlbums()
         }
     }
 
@@ -79,6 +82,12 @@ class MainActivity : AppCompatActivity() {
         binding.joinRoomButton.setOnClickListener { openTrendingRoom() }
         binding.trendingCard.setOnClickListener { openTrendingRoom() }
         binding.searchIcon.setOnClickListener { promptSearch() }
+        binding.trendingSeeAll.setOnClickListener {
+            startActivity(Intent(this@MainActivity, RoomsActivity::class.java))
+        }
+        binding.popularSeeAll.setOnClickListener {
+            lifecycleScope.launch { loadCuratedAlbums() }
+        }
     }
 
     private suspend fun loadTrendingRoom() {
@@ -113,6 +122,66 @@ class MainActivity : AppCompatActivity() {
         binding.currentArtist.text = track?.artist ?: getString(R.string.no_track_artist)
     }
 
+    private suspend fun loadCuratedAlbums() {
+        binding.popularAlbumsRecyclerView.isVisible = false
+        val curatedQueries = listOf(
+            "The Weeknd After Hours",
+            "Taylor Swift Midnights",
+            "SZA SOS",
+            "Harry Styles Harry's House",
+            "Bad Bunny Un Verano Sin Ti",
+            "Olivia Rodrigo GUTS",
+            "Drake For All The Dogs",
+            "Beyonce Renaissance",
+            "Kendrick Lamar Mr. Morale",
+            "Billie Eilish Hit Me Hard and Soft"
+        )
+
+        val albums = mutableListOf<Album>()
+        val itunesApi = com.example.music_room.data.AuroraServiceLocator.itunesApi
+
+        try {
+            // Parallel fetching for ultra-fast loading
+            val deferredResults = curatedQueries.map { query ->
+                lifecycleScope.async(Dispatchers.IO) {
+                    try {
+                        itunesApi.searchAlbums(query).results.firstOrNull()
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            }
+
+            val results = deferredResults.awaitAll()
+
+            results.filterNotNull().forEach { track ->
+                // Get high-res image by replacing 100x100 with 600x600
+                val highResUrl = track.artworkUrl100.replace("100x100bb", "600x600bb")
+                
+                albums.add(
+                    Album(
+                        title = track.collectionName,
+                        artist = track.artistName,
+                        trackId = track.collectionId.toString(),
+                        provider = "ITUNES", // Just for display, playback might need logic
+                        imageUrl = highResUrl,
+                        durationSeconds = 0,
+                        externalUrl = ""
+                    )
+                )
+            }
+
+            if (albums.isNotEmpty()) {
+                albumsAdapter.submitList(albums)
+                binding.popularAlbumsRecyclerView.isVisible = true
+            } else {
+                 loadPopularAlbums(DEFAULT_SEARCH_QUERY)
+            }
+        } catch (e: Exception) {
+             loadPopularAlbums(DEFAULT_SEARCH_QUERY)
+        }
+    }
+
     private suspend fun loadPopularAlbums(query: String) {
         binding.popularAlbumsRecyclerView.isVisible = false
         repository.search(query)
@@ -123,7 +192,7 @@ class MainActivity : AppCompatActivity() {
                         artist = track.artist,
                         trackId = track.id,
                         provider = track.provider,
-                        imageUrl = track.thumbnailUrl,
+                        imageUrl = getHighResThumbnailUrl(track.thumbnailUrl),
                         durationSeconds = track.durationSeconds,
                         externalUrl = track.externalUrl
                     )
@@ -134,6 +203,16 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, error.message ?: getString(R.string.loading), Toast.LENGTH_LONG).show()
             }
         binding.popularAlbumsRecyclerView.isVisible = true
+    }
+
+    private fun getHighResThumbnailUrl(url: String?): String? {
+        if (url == null) return null
+        if (url.contains("i.ytimg.com")) {
+            return url.replace("default.jpg", "sddefault.jpg")
+                .replace("mqdefault.jpg", "sddefault.jpg")
+                .replace("hqdefault.jpg", "sddefault.jpg")
+        }
+        return url
     }
 
     private fun promptSearch() {

@@ -7,21 +7,24 @@
     app:cardCornerRadius="20dp"
     app:cardElevation="0dp"
     app:cardBackgroundColor="#2A2E3F"
-    android:alpha="0.85">
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="20dp">
+        android:padding="24dp">
 
         <!-- Live Indicator -->
         <View
             android:id="@+id/liveIndicator"
-            android:layout_width="12dp"
-            android:layout_height="12dp"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
             android:background="@drawable/live_indicator"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/liveText"/>
 
         <TextView
             android:id="@+id/liveText"
@@ -33,29 +36,31 @@
             android:textStyle="bold"
             android:layout_marginStart="8dp"
             app:layout_constraintStart_toEndOf="@id/liveIndicator"
-            app:layout_constraintTop_toTopOf="@id/liveIndicator"
-            app:layout_constraintBottom_toBottomOf="@id/liveIndicator"/>
+            app:layout_constraintTop_toTopOf="parent"/>
 
         <!-- Listener Count -->
         <ImageView
             android:id="@+id/listenerIcon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
             android:src="@drawable/ic_people"
-            app:tint="@color/white"
+            app:tint="#B0B5C8"
             app:layout_constraintEnd_toStartOf="@id/listenerCount"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/liveText"
+            android:layout_marginEnd="4dp"/>
 
         <TextView
             android:id="@+id/listenerCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="24"
-            android:textColor="@color/white"
+            android:textColor="#B0B5C8"
             android:textSize="14sp"
-            android:layout_marginStart="6dp"
+            android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/liveText"/>
 
         <!-- Room Name -->
         <TextView
@@ -77,14 +82,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="Hosted by Alex"
-            android:textColor="#B0B5C8"
+            android:textColor="#80859A"
             android:textSize="14sp"
             android:layout_marginTop="4dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/roomName"/>
 
-        <!-- Current Song Info -->
+        <!-- Now Playing Section -->
         <TextView
             android:id="@+id/nowPlayingLabel"
             android:layout_width="wrap_content"
@@ -92,7 +97,8 @@
             android:text="Now Playing:"
             android:textColor="#6A7080"
             android:textSize="12sp"
-            android:layout_marginTop="16dp"
+            android:textStyle="bold"
+            android:layout_marginTop="20dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/hostName"/>
 
@@ -101,7 +107,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="Blinding Lights"
-            android:textColor="@color/primary_purple"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"
             android:layout_marginTop="4dp"

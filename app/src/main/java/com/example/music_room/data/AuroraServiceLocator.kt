@@ -2,6 +2,7 @@ package com.example.music_room.data
 
 import com.example.music_room.BuildConfig
 import com.example.music_room.data.remote.AuroraApi
+import com.example.music_room.data.remote.ITunesApi
 import com.example.music_room.data.repository.AuroraRepository
 import com.example.music_room.data.socket.PlaybackSocketClient
 import com.squareup.moshi.Moshi
@@ -53,6 +54,18 @@ object AuroraServiceLocator {
     fun createPlaybackSocket(): PlaybackSocketClient {
         val url = ensureTrailingSlash(BuildConfig.BACKEND_WS_URL) + "api/playback/stream"
         return PlaybackSocketClient(okHttpClient, moshi, url)
+    }
+
+    private val itunesRetrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://itunes.apple.com/")
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .client(okHttpClient)
+            .build()
+    }
+
+    val itunesApi: ITunesApi by lazy {
+        itunesRetrofit.create(ITunesApi::class.java)
     }
 
     private fun ensureTrailingSlash(url: String): String = if (url.endsWith('/')) url else "$url/"
