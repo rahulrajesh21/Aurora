@@ -104,11 +104,9 @@ class RoomDetailViewModel : ViewModel() {
         }
     }
 
-    fun leaveRoom(roomId: String, memberId: String) {
-        // Use a separate scope to ensure the network call completes even if the ViewModel is cleared
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            repository.leaveRoom(roomId, memberId)
-        }
+    suspend fun leaveRoom(roomId: String, memberId: String) {
+        // Perform the leave operation and wait for it to complete
+        repository.leaveRoom(roomId, memberId)
         setMemberId(null)
     }
 

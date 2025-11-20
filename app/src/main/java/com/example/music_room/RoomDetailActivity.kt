@@ -281,10 +281,16 @@ class RoomDetailActivity : AppCompatActivity() {
         binding.leaveButton.isEnabled = false
         val memberId = viewModel.uiState.value.memberId
         if (memberId != null) {
-            viewModel.leaveRoom(roomId, memberId)
-            RoomSessionStore.clearMemberId(this, roomId)
+            lifecycleScope.launch {
+                viewModel.leaveRoom(roomId, memberId)
+                // Wait a moment for the request to complete
+                kotlinx.coroutines.delay(500)
+                RoomSessionStore.clearMemberId(this@RoomDetailActivity, roomId)
+                finish()
+            }
+        } else {
+            finish()
         }
-        finish()
     }
 
     private fun setupPlaybackControls() {
