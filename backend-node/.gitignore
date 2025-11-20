@@ -1,0 +1,18 @@
+# Environment variables
+.env
+
+# Runtime data
+data/rooms/*/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+npm-debug.log*

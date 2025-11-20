@@ -4,11 +4,22 @@ A modern Android music player app with a stunning gradient UI and glassmorphism 
 
 ## ✨ Features
 
+### 🎵 Music Playback
+- **Background Playback** - Continue listening even when the app is closed
+- **Media Controls** - Control playback from notification panel and lock screen
+- **Real-time Sync** - Multi-device synchronization through WebSocket connections
+- **Queue Management** - Add, remove, and reorder tracks in the playback queue
+
+### 🎨 Design & UI
 - **Beautiful Gradient Background** - Multi-layered radial gradients creating an aurora effect
 - **Glassmorphism Design** - Semi-transparent cards with backdrop blur effects
-- **Trending Playlists** - Discover popular music with waveform visualization
-- **Album Gallery** - Browse albums with circular artwork and smooth animations
 - **Modern UI/UX** - Clean, intuitive interface with custom color palette
+- **Room-based Music Sharing** - Create and join music rooms with friends
+
+### 🔍 Discovery
+- **YouTube Integration** - Search and stream music from YouTube
+- **Album Gallery** - Browse albums with circular artwork and smooth animations
+- **Real-time Search** - Fast music discovery with instant results
 
 ## 🎨 Designsanldansdn
 
@@ -24,14 +35,39 @@ A modern Android music player app with a stunning gradient UI and glassmorphism 
   - Waveform visualization for playing tracks
   - Circular album artwork with play buttons
 
+## 🏗️ Architecture
+
+### Background Playback System
+Aurora implements a robust background playback system using modern Android architecture:
+
+- **MediaSessionService** - Handles background music playback with system integration
+- **ExoPlayer** - High-performance media player with adaptive streaming
+- **Media3 Session API** - Modern media session management for Android 13+
+- **Foreground Service** - Ensures uninterrupted playback with proper notification handling
+- **WebSocket Integration** - Real-time synchronization between app UI and background service
+
+### Backend Services
+- **Node.js Backend** - RESTful API with WebSocket support
+- **Room Management** - Multi-user music rooms with real-time state synchronization  
+- **Queue Management** - Persistent playback queues with cross-device sync
+- **YouTube Integration** - Stream audio directly from YouTube with `yt-dlp` extraction
+
 ## 🛠️ Tech Stack
 
+### Android App
 - **Language:** Kotlin
 - **Min SDK:** 24 (Android 7.0)
 - **Target SDK:** 36
-- **Architecture:** MVVM-ready structure
-- **UI:** Material Design 3 components
+- **Architecture:** MVVM with background services
+- **UI:** Material Design 3 with custom glassmorphism effects
+- **Media:** ExoPlayer with Media3 Session API
 - **Build System:** Gradle with Kotlin DSL
+
+### Backend
+- **Runtime:** Node.js with TypeScript
+- **Framework:** Express.js with WebSocket support
+- **Audio Processing:** YouTube integration with stream extraction
+- **Storage:** LibSQL/SQLite for room management
 
 ## 📱 Screenshots
 
