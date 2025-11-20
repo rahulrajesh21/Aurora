@@ -280,16 +280,21 @@ class RoomDetailActivity : AppCompatActivity() {
         leaveRequested = true
         binding.leaveButton.isEnabled = false
         val memberId = viewModel.uiState.value.memberId
-        if (memberId != null) {
-            lifecycleScope.launch {
-                viewModel.leaveRoom(roomId, memberId)
-                // Wait a moment for the request to complete
-                kotlinx.coroutines.delay(500)
+        
+        lifecycleScope.launch {
+            try {
+                if (memberId != null) {
+                    // Call leave API and wait for completion
+                    viewModel.leaveRoom(roomId, memberId)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("RoomDetail", "Error leaving room: ${e.message}")
+            } finally {
+                // Always clear the session and close the activity
                 RoomSessionStore.clearMemberId(this@RoomDetailActivity, roomId)
+                viewModel.disconnectSocket()
                 finish()
             }
-        } else {
-            finish()
         }
     }
 
