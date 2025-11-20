@@ -3,9 +3,9 @@ package com.example.music_room
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
@@ -35,7 +35,7 @@ class CreateRoomActivity : AppCompatActivity() {
     }
 
     private fun setupBackNavigation() {
-        binding.backButton?.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        binding.backButton.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
     }
 
     private fun setupCreateRoomButton() {
@@ -45,12 +45,11 @@ class CreateRoomActivity : AppCompatActivity() {
                     binding.createRoomButton.isEnabled = false
                     try {
                         val roomName = binding.roomNameInput.text?.toString()?.trim().orEmpty()
-                        val vibe = binding.vibeInput.text?.toString()?.trim().orEmpty()
-                        val capacity = binding.capacityInput.text?.toString()?.trim().orEmpty()
                         val passcodeText = binding.passcodeInput.text?.toString()?.trim().orEmpty()
                         val hostName = UserIdentity.getDisplayName(this@CreateRoomActivity)
-                        val visibility = if (isPrivateRoom()) "PRIVATE" else "PUBLIC"
-                        val passcode = if (isPrivateRoom()) passcodeText else null
+                        val privateRoom = isPrivateRoom()
+                        val visibility = if (privateRoom) "PRIVATE" else "PUBLIC"
+                        val passcode = if (privateRoom) passcodeText else null
 
                         repository.createRoom(roomName, hostName, visibility = visibility, passcode = passcode)
                             .onSuccess { response ->
@@ -59,15 +58,7 @@ class CreateRoomActivity : AppCompatActivity() {
                                     roomId = response.room.id,
                                     memberId = response.host.id
                                 )
-                                showRoomCodeDialog(
-                                    roomName = response.room.name,
-                                    roomCode = response.room.id.takeLast(6).uppercase(),
-                                    vibe = vibe,
-                                    capacity = capacity,
-                                    backendRoomId = response.room.id,
-                                    isPrivate = isPrivateRoom(),
-                                    passcode = passcode
-                                )
+                                handleRoomCreated(response.room.id, response.room.name, response.room.hostId, privateRoom || !passcode.isNullOrBlank())
                             }
                             .onFailure { error ->
                                 Toast.makeText(
@@ -84,44 +75,19 @@ class CreateRoomActivity : AppCompatActivity() {
         }
     }
 
-    private fun showRoomCodeDialog(
-        roomName: String,
-        roomCode: String,
-        vibe: String,
-        capacity: String,
-        backendRoomId: String,
-        isPrivate: Boolean,
-        passcode: String?
-    ) {
-        val message = buildString {
-            append("Room Created Successfully!\n\n")
-            append("Shareable Code: $roomCode\n\n")
-            append("Room ID: $backendRoomId\n\n")
-            append("Share this code with friends to invite them to \"$roomName\"")
-            if (vibe.isNotEmpty()) {
-                append("\n\nVibe: $vibe")
-            }
-            if (capacity.isNotEmpty()) {
-                append("\nCapacity: $capacity listeners")
-            }
-            if (isPrivate && !passcode.isNullOrBlank()) {
-                append("\nPasscode: $passcode")
-            }
-        }
+    private fun handleRoomCreated(roomId: String, roomName: String, hostMemberId: String, isLocked: Boolean) {
+        val shareCode = roomId.takeLast(6).uppercase()
+        copyToClipboard(shareCode)
+        Toast.makeText(this, getString(R.string.room_created_toast, shareCode), Toast.LENGTH_LONG).show()
 
-        AlertDialog.Builder(this)
-            .setTitle("🎉 Room Created!")
-            .setMessage(message)
-            .setPositiveButton("Copy Code") { _, _ ->
-                copyToClipboard(roomCode)
-                Toast.makeText(this, "Room code copied!", Toast.LENGTH_SHORT).show()
-                finish()
-            }
-            .setNegativeButton("Done") { _, _ ->
-                finish()
-            }
-            .setCancelable(false)
-            .show()
+        val intent = Intent(this, RoomDetailActivity::class.java).apply {
+            putExtra(RoomDetailActivity.EXTRA_ROOM_ID, roomId)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_NAME, roomName)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_LOCKED, isLocked)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_HOST_ID, hostMemberId)
+        }
+        startActivity(intent)
+        finish()
     }
 
     private fun copyToClipboard(text: String) {
@@ -152,10 +118,9 @@ class CreateRoomActivity : AppCompatActivity() {
     }
 
     private fun setupVisibilityToggle() {
-        binding.visibilityToggle.check(binding.visibilityPublic.id)
-        binding.visibilityToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (!isChecked) return@addOnButtonCheckedListener
-            val isPrivate = checkedId == binding.visibilityPrivate.id
+        binding.chipVisibilityOpen.isChecked = true
+        binding.visibilityChips.setOnCheckedStateChangeListener { _, checkedIds: MutableList<Int> ->
+            val isPrivate = checkedIds.contains(binding.chipVisibilityPrivate.id)
             binding.passcodeLayout.isVisible = isPrivate
             binding.visibilityHelp.setText(
                 if (isPrivate) R.string.create_room_visibility_help_private else R.string.create_room_visibility_help_public
@@ -163,7 +128,7 @@ class CreateRoomActivity : AppCompatActivity() {
         }
     }
 
-    private fun isPrivateRoom(): Boolean = binding.visibilityToggle.checkedButtonId == binding.visibilityPrivate.id
+    private fun isPrivateRoom(): Boolean = binding.chipVisibilityPrivate.isChecked
 
     private fun validateInputs(): Boolean {
         var isValid = true

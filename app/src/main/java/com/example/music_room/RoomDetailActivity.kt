@@ -91,12 +91,7 @@ class RoomDetailActivity : AppCompatActivity() {
     private fun setupSession() {
         val cachedSession = RoomSessionStore.getSession(this, roomId)
         if (cachedSession != null) {
-            if (RoomSessionStore.isSameProcess(cachedSession)) {
-                viewModel.setMemberId(cachedSession.memberId)
-            } else {
-                // Stale session cleanup could be moved to VM, but keeping simple for now
-                // We'll just ignore it or let the VM handle join logic
-            }
+            viewModel.setMemberId(cachedSession.memberId)
         }
     }
 

@@ -122,7 +122,7 @@ class MainActivity : AppCompatActivity() {
         binding.roomName.text = snapshot.room.name
         binding.hostName.text = getString(R.string.hosted_by_template, snapshot.room.hostName)
         binding.listenerCount.text = snapshot.memberCount.toString()
-        val track = snapshot.nowPlaying?.currentTrack
+        val track = snapshot.nowPlaying?.currentTrack ?: snapshot.nowPlaying?.queue?.firstOrNull()
         binding.currentSong.text = track?.title ?: getString(R.string.no_track_playing)
         binding.currentArtist.text = track?.artist ?: getString(R.string.no_track_artist)
     }

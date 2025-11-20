@@ -48,6 +48,7 @@
     <string name="create_room_button">Create Room</string>
     <string name="create_room_vibe_preview_default">We’ll show this vibe on invites.</string>
     <string name="create_room_vibe_preview">Vibe preview: %1$s</string>
+    <string name="room_created_toast">Room created! Code %1$s copied.</string>
     <string name="reminder_label">Reminder</string>
     <string name="lyrics_label">Lyrics</string>
     <string name="join_room_title_default">Join room</string>
