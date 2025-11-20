@@ -6,7 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.addCallback
+
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -96,8 +96,7 @@ class RoomDetailActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        binding.backButton.setOnClickListener { leaveRoomAndFinish() }
-        onBackPressedDispatcher.addCallback(this) { leaveRoomAndFinish() }
+        binding.backButton.setOnClickListener { finish() }
         binding.leaveButton.setOnClickListener { leaveRoomAndFinish() }
         binding.deleteRoomButton.setOnClickListener { promptDeleteRoom() }
         binding.addSongButton.setOnClickListener { promptAddSong() }
