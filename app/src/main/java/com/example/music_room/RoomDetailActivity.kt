@@ -290,7 +290,9 @@ class RoomDetailActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 android.util.Log.e("RoomDetail", "Error leaving room: ${e.message}")
             } finally {
-                // Always clear the session and close the activity
+                // Stop background playback service
+                mediaServiceManager.stopPlaybackService()
+                // Clear the session and close the activity
                 RoomSessionStore.clearMemberId(this@RoomDetailActivity, roomId)
                 viewModel.disconnectSocket()
                 finish()
