@@ -1,18 +1,10 @@
 {
-  "currentTrack": {
-    "id": "SRcnnId15BA",
-    "title": "50 Cent - Candy Shop (Official Music Video) ft. Olivia",
-    "artist": "50CentVEVO",
-    "durationSeconds": 250,
-    "provider": "YOUTUBE",
-    "thumbnailUrl": "https://i.ytimg.com/vi/SRcnnId15BA/default.jpg",
-    "externalUrl": "https://www.youtube.com/watch?v=SRcnnId15BA"
-  },
+  "currentTrack": null,
   "positionSeconds": 0,
-  "isPlaying": true,
+  "isPlaying": false,
   "queue": [],
   "shuffleEnabled": false,
-  "timestamp": 1763631697585,
-  "streamUrl": "https://rr3---sn-h5576nsk.googlevideo.com/videoplayback?expire=1763653296&ei=UOIeae_WJ7nrpt8P2-KVoAs&ip=117.193.77.254&id=o-ABirOhic43xDvUEki0_Pmz9POAOuJjiSxQG_JfYNuKKU&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=291&met=1763631696%2C&mh=i7&mm=31%2C29&mn=sn-h5576nsk%2Csn-ajh555-5j&ms=au%2Crdu&mv=m&mvi=3&pl=24&rms=au%2Cau&gcr=in&initcwndbps=766250&bui=AdEuB5SfHWqc9_Pb9teCyXvh3M6pzWTSNOybWq_8054E1d4o9EmIA5djpb8GoaFSd-reHq95pwZJFBJN&vprv=1&svpuc=1&mime=audio%2Fwebm&ns=KvXWFypvKRw3_cJFit1Hm8IQ&rqh=1&gir=yes&clen=4214487&dur=249.181&lmt=1743559127287066&mt=1763631422&fvip=2&keepalive=yes&lmw=1&fexp=51557447%2C51565116%2C51565681%2C51580970&c=TVHTML5&sefc=1&txp=4532534&n=KLZBDiEWUych0g&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cgcr%2Cbui%2Cvprv%2Csvpuc%2Cmime%2Cns%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRAIgU7NcnP3hCTRIF6wZrqjrV6pqgQTgqRKLKMbP5a817RYCIBEgeHEhzYH2aW-rTL64IGgewQBmsAmKQOkhizf8L8c8&sig=AJfQdSswRQIhAMbIrUbZ1UxJUEq5M27Res0heRTd91w7x1BdqfNij2wcAiBc1jlAiCkqo66Pt35Qu7r1VUAvDzZJlwPKVk0B8m2oyg%3D%3D",
+  "timestamp": 1763643125077,
+  "streamUrl": null,
   "streamFormat": "WEBM"
 }

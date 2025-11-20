@@ -28,9 +28,6 @@ import com.example.music_room.ui.QueueAdapter
 import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.utils.PermissionUtils
 import com.google.android.material.slider.Slider
-import androidx.media3.common.C
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.common.MediaItem
 import kotlinx.coroutines.launch
 import com.example.music_room.R
 
@@ -54,8 +51,6 @@ class RoomDetailActivity : AppCompatActivity() {
     
     private var leaveRequested = false
     private var sliderBeingDragged = false
-    private var exoPlayer: ExoPlayer? = null
-    private var currentStreamUrl: String? = null
     private lateinit var mediaServiceManager: MediaServiceManager
     
     private val playbackTickerHandler = Handler(Looper.getMainLooper())
@@ -319,7 +314,7 @@ class RoomDetailActivity : AppCompatActivity() {
                 viewModel.sliderBasePositionSeconds = rounded.toFloat()
                 viewModel.sliderBaseTimestamp = SystemClock.elapsedRealtime()
                 
-                exoPlayer?.seekTo((rounded * 1000L).coerceAtLeast(0L))
+                // Background service handles seeking
                 viewModel.seekTo(rounded)
             }
         })
@@ -352,7 +347,7 @@ class RoomDetailActivity : AppCompatActivity() {
             binding.playbackElapsed.text = formatTime(state.positionSeconds)
         }
 
-        ensurePlayerForState(state)
+        // Background service handles playback
         
         if (state.isPlaying) {
             schedulePlaybackTicker()
@@ -393,28 +388,7 @@ class RoomDetailActivity : AppCompatActivity() {
         sheet.show()
     }
 
-    private fun ensurePlayerForState(state: PlaybackStateDto) {
-        val streamUrl = state.streamUrl ?: return
-        val player = exoPlayer ?: ExoPlayer.Builder(this).build().also { exoPlayer = it }
-        val streamChanged = currentStreamUrl != streamUrl
-        if (streamChanged) {
-            player.setMediaItem(MediaItem.fromUri(streamUrl))
-            player.prepare()
-            currentStreamUrl = streamUrl
-        }
 
-        syncPlayerPosition(player, state, forceSeek = streamChanged)
-        player.playWhenReady = state.isPlaying
-    }
-
-    private fun syncPlayerPosition(player: ExoPlayer, state: PlaybackStateDto, forceSeek: Boolean = false) {
-        val targetMs = (state.positionSeconds.coerceAtLeast(0) * 1000L)
-        val currentMs = player.currentPosition
-        val currentIsUnset = currentMs <= 0 || currentMs == C.TIME_UNSET
-        if (forceSeek || currentIsUnset || kotlin.math.abs(currentMs - targetMs) > PLAYER_SYNC_TOLERANCE_MS) {
-            player.seekTo(targetMs)
-        }
-    }
 
     private fun schedulePlaybackTicker() {
         playbackTickerHandler.removeCallbacks(playbackTicker)
@@ -481,13 +455,10 @@ class RoomDetailActivity : AppCompatActivity() {
     override fun onStop() {
         viewModel.disconnectSocket()
         stopPlaybackTicker()
-        exoPlayer?.pause()
         super.onStop()
     }
 
     override fun onDestroy() {
-        exoPlayer?.release()
-        exoPlayer = null
         super.onDestroy()
     }
 

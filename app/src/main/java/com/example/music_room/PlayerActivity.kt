@@ -12,8 +12,6 @@ import coil.load
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.databinding.ActivityPlayerBinding
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.common.MediaItem
 import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.utils.PermissionUtils
 import kotlinx.coroutines.launch
@@ -29,8 +27,6 @@ class PlayerActivity : AppCompatActivity() {
         AuroraServiceLocator.createPlaybackSocket(id) 
     }
     private var currentState: PlaybackStateDto? = null
-    private var exoPlayer: ExoPlayer? = null
-    private var currentStreamUrl: String? = null
     private lateinit var mediaServiceManager: MediaServiceManager
     private val playbackTickerHandler = Handler(Looper.getMainLooper())
     private val playbackTicker = object : Runnable {
@@ -107,13 +103,10 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStop() {
         playbackSocket.disconnect()
         stopPlaybackTicker()
-        exoPlayer?.pause()
         super.onStop()
     }
 
     override fun onDestroy() {
-        exoPlayer?.release()
-        exoPlayer = null
         super.onDestroy()
     }
 
@@ -178,7 +171,7 @@ class PlayerActivity : AppCompatActivity() {
         binding.currentTime.text = formatTime(state.positionSeconds)
         val duration = track?.durationSeconds ?: state.positionSeconds
         binding.totalTime.text = formatTime(duration)
-        ensurePlayerForState(state)
+        // Background service handles playback
         if (state.isPlaying) {
             schedulePlaybackTicker()
         } else {
@@ -232,16 +225,7 @@ class PlayerActivity : AppCompatActivity() {
             .onFailure { showControlError(it) }
     }
 
-    private fun ensurePlayerForState(state: PlaybackStateDto) {
-        val streamUrl = state.streamUrl ?: return
-        val player = exoPlayer ?: ExoPlayer.Builder(this).build().also { exoPlayer = it }
-        if (currentStreamUrl != streamUrl) {
-            player.setMediaItem(MediaItem.fromUri(streamUrl))
-            player.prepare()
-            currentStreamUrl = streamUrl
-        }
-        player.playWhenReady = state.isPlaying
-    }
+
 
     private fun schedulePlaybackTicker() {
         playbackTickerHandler.removeCallbacks(playbackTicker)
