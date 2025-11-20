@@ -12,6 +12,7 @@ import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.UserIdentity
+import com.example.music_room.data.RoomSessionStore
 import com.example.music_room.databinding.ActivityCreateRoomBinding
 import kotlinx.coroutines.launch
 
@@ -53,6 +54,11 @@ class CreateRoomActivity : AppCompatActivity() {
 
                         repository.createRoom(roomName, hostName, visibility = visibility, passcode = passcode)
                             .onSuccess { response ->
+                                RoomSessionStore.saveMemberId(
+                                    context = this@CreateRoomActivity,
+                                    roomId = response.room.id,
+                                    memberId = response.host.id
+                                )
                                 showRoomCodeDialog(
                                     roomName = response.room.name,
                                     roomCode = response.room.id.takeLast(6).uppercase(),

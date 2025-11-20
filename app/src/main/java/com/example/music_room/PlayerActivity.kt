@@ -15,12 +15,17 @@ import com.example.music_room.databinding.ActivityPlayerBinding
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.MediaItem
 import kotlinx.coroutines.launch
+import com.example.music_room.R
 
 class PlayerActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPlayerBinding
     private val repository = AuroraServiceLocator.repository
-    private val playbackSocket by lazy { AuroraServiceLocator.createPlaybackSocket() }
+    private val roomId by lazy { intent.getStringExtra(EXTRA_ROOM_ID) }
+    private val playbackSocket by lazy { 
+        val id = roomId ?: throw IllegalStateException("Room ID missing")
+        AuroraServiceLocator.createPlaybackSocket(id) 
+    }
     private var currentState: PlaybackStateDto? = null
     private var exoPlayer: ExoPlayer? = null
     private var currentStreamUrl: String? = null
@@ -40,6 +45,12 @@ class PlayerActivity : AppCompatActivity() {
 
         binding = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        if (roomId == null) {
+            Toast.makeText(this, "Error: No room ID provided", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
 
         binding.backButton.setOnClickListener { finish() }
         binding.favoriteButton.setOnClickListener {
@@ -91,7 +102,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private suspend fun refreshPlaybackState() {
-        repository.getPlaybackState()
+        val id = roomId ?: return
+        repository.getPlaybackState(id)
             .onSuccess { applyState(it) }
             .onFailure {
                 Toast.makeText(this, it.message ?: getString(R.string.player_error), Toast.LENGTH_SHORT).show()
@@ -144,10 +156,11 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private suspend fun togglePlayPause() {
+        val id = roomId ?: return
         val result = if (currentState?.isPlaying == true) {
-            repository.pause()
+            repository.pause(id)
         } else {
-            repository.resume()
+            repository.resume(id)
         }
         result
             .onSuccess { applyState(it) }
@@ -155,19 +168,22 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private suspend fun skipTrack() {
-        repository.next()
+        val id = roomId ?: return
+        repository.next(id)
             .onSuccess { applyState(it) }
             .onFailure { showControlError(it) }
     }
 
     private suspend fun previousTrack() {
-        repository.previous()
+        val id = roomId ?: return
+        repository.previous(id)
             .onSuccess { applyState(it) }
             .onFailure { showControlError(it) }
     }
 
     private suspend fun shuffleQueue() {
-        repository.shuffleQueue()
+        val id = roomId ?: return
+        repository.shuffleQueue(id)
             .onSuccess {
                 Toast.makeText(this, R.string.shuffle_success, Toast.LENGTH_SHORT).show()
                 refreshPlaybackState()
@@ -176,7 +192,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private suspend fun restartTrack() {
-        repository.seekTo(0)
+        val id = roomId ?: return
+        repository.seekTo(id, 0)
             .onSuccess {
                 Toast.makeText(this, R.string.restart_track_success, Toast.LENGTH_SHORT).show()
                 applyState(it)
@@ -234,6 +251,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     companion object {
+        const val EXTRA_ROOM_ID = "extra_room_id"
         const val EXTRA_SONG_TITLE = "extra_song_title"
         const val EXTRA_ARTIST_NAME = "extra_artist_name"
         const val EXTRA_TRACK_ID = "extra_track_id"

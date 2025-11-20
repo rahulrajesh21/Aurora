@@ -65,6 +65,14 @@ data class LeaveRoomRequestDto(
     @Json(name = "memberId") val memberId: String
 )
 
+data class HeartbeatRequestDto(
+    @Json(name = "memberId") val memberId: String
+)
+
+data class DeleteRoomRequestDto(
+    @Json(name = "memberId") val memberId: String
+)
+
 data class CreateInviteRequestDto(
     @Json(name = "requestedBy") val requestedBy: String,
     @Json(name = "maxUses") val maxUses: Int? = null,

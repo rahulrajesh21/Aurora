@@ -51,24 +51,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupMenuButton() {
-        binding.menuButton.setOnClickListener { anchor ->
-            PopupMenu(this, anchor).apply {
-                menuInflater.inflate(R.menu.menu_main, menu)
-                setOnMenuItemClickListener { item ->
-                    when (item.itemId) {
-                        R.id.action_create_room -> {
-                            startActivity(Intent(this@MainActivity, CreateRoomActivity::class.java))
-                            true
-                        }
-                        R.id.action_browse_rooms -> {
-                            startActivity(Intent(this@MainActivity, RoomsActivity::class.java))
-                            true
-                        }
-                        else -> false
-                    }
-                }
-                show()
-            }
+        binding.menuButton.setOnClickListener {
+            com.example.music_room.ui.BottomSheetMenu(
+                onCreateRoom = { startActivity(Intent(this@MainActivity, CreateRoomActivity::class.java)) },
+                onBrowseRooms = { startActivity(Intent(this@MainActivity, RoomsActivity::class.java)) }
+            ).show(supportFragmentManager, "BottomSheetMenu")
         }
     }
 
@@ -150,6 +137,7 @@ class MainActivity : AppCompatActivity() {
             putExtra(RoomDetailActivity.EXTRA_ROOM_ID, room.room.id)
             putExtra(RoomDetailActivity.EXTRA_ROOM_NAME, room.room.name)
             putExtra(RoomDetailActivity.EXTRA_ROOM_LOCKED, room.isLocked)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_HOST_ID, room.room.hostId)
         }
         startActivity(intent)
     }

@@ -53,6 +53,13 @@
     <string name="join_room_title_default">Join room</string>
     <string name="cancel_button">Cancel</string>
     <string name="leave_room_button">Leave</string>
+    <string name="delete_room_button">Delete</string>
+    <string name="delete_room_not_allowed">Only the host can delete this room.</string>
+    <string name="delete_room_dialog_title">Delete this room?</string>
+    <string name="delete_room_dialog_message">This removes the room for everyone immediately. This action cannot be undone.</string>
+    <string name="delete_room_confirm">Delete</string>
+    <string name="delete_room_not_joined">Join the room before deleting it.</string>
+    <string name="delete_room_success">Room deleted</string>
     <string name="up_next_label">Up Next</string>
     <string name="recent_searches_label">Recent Searches</string>
     <string name="search_tracks_hint">Search tracks</string>

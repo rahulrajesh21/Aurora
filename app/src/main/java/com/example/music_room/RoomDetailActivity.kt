@@ -8,6 +8,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
@@ -29,6 +30,7 @@ import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.MediaItem
 import kotlinx.coroutines.launch
+import com.example.music_room.R
 
 class RoomDetailActivity : AppCompatActivity() {
 
@@ -46,6 +48,7 @@ class RoomDetailActivity : AppCompatActivity() {
     private val roomId: String by lazy { intent.getStringExtra(EXTRA_ROOM_ID).orEmpty() }
     private val roomName: String by lazy { intent.getStringExtra(EXTRA_ROOM_NAME).orEmpty() }
     private val isLocked: Boolean by lazy { intent.getBooleanExtra(EXTRA_ROOM_LOCKED, false) }
+    private val roomHostId: String by lazy { intent.getStringExtra(EXTRA_ROOM_HOST_ID).orEmpty() }
     
     private var leaveRequested = false
     private var sliderBeingDragged = false
@@ -69,6 +72,9 @@ class RoomDetailActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.roomNameTitle.text = roomName
+        
+        viewModel.setRoomId(roomId)
+        viewModel.setRoomHostId(roomHostId.ifEmpty { null })
 
         setupSession()
         setupUI()
@@ -98,6 +104,7 @@ class RoomDetailActivity : AppCompatActivity() {
         binding.backButton.setOnClickListener { leaveRoomAndFinish() }
         onBackPressedDispatcher.addCallback(this) { leaveRoomAndFinish() }
         binding.leaveButton.setOnClickListener { leaveRoomAndFinish() }
+        binding.deleteRoomButton.setOnClickListener { promptDeleteRoom() }
         binding.addSongButton.setOnClickListener { promptAddSong() }
     }
 
@@ -157,6 +164,7 @@ class RoomDetailActivity : AppCompatActivity() {
                 viewModel.uiState.collect { state ->
                     // Member ID / Join State
                     binding.leaveButton.isEnabled = state.memberId != null
+                    binding.deleteRoomButton.isVisible = state.canDeleteRoom
                     if (state.memberId == null && !leaveRequested) {
                         joinRoomIfNeeded()
                     }
@@ -173,6 +181,38 @@ class RoomDetailActivity : AppCompatActivity() {
                         viewModel.clearError()
                     }
                 }
+            }
+        }
+    }
+
+    private fun promptDeleteRoom() {
+        if (!viewModel.uiState.value.canDeleteRoom) {
+            Toast.makeText(this, R.string.delete_room_not_allowed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete_room_dialog_title)
+            .setMessage(R.string.delete_room_dialog_message)
+            .setPositiveButton(R.string.delete_room_confirm) { _, _ -> performDeleteRoom() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun performDeleteRoom() {
+        val memberId = viewModel.uiState.value.memberId
+        if (memberId == null) {
+            Toast.makeText(this, R.string.delete_room_not_joined, Toast.LENGTH_SHORT).show()
+            return
+        }
+        binding.deleteRoomButton.isEnabled = false
+        viewModel.deleteRoom(roomId) { success, error ->
+            binding.deleteRoomButton.isEnabled = true
+            if (success) {
+                RoomSessionStore.clearMemberId(this, roomId)
+                Toast.makeText(this, R.string.delete_room_success, Toast.LENGTH_SHORT).show()
+                finish()
+            } else if (!error.isNullOrEmpty()) {
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -324,7 +364,12 @@ class RoomDetailActivity : AppCompatActivity() {
     private fun updateQueueFromState(queue: List<TrackDto>, isEmpty: Boolean, isLoading: Boolean) {
         queueAdapter.submitList(queue)
         binding.queueEmptyState.isVisible = isEmpty && !isLoading
-        binding.queueLoading.isVisible = isLoading
+        binding.queueSkeleton.isVisible = isLoading
+        if (isLoading) {
+            binding.queueRecyclerView.isVisible = false
+        } else {
+            binding.queueRecyclerView.isVisible = true
+        }
         if (!isEmpty) {
             binding.queueEmptyState.isVisible = false
         }
@@ -440,6 +485,7 @@ class RoomDetailActivity : AppCompatActivity() {
         const val EXTRA_ROOM_ID = "extra_room_id"
         const val EXTRA_ROOM_NAME = "extra_room_name"
         const val EXTRA_ROOM_LOCKED = "extra_room_locked"
+        const val EXTRA_ROOM_HOST_ID = "extra_room_host_id"
         private const val PLAYER_SYNC_TOLERANCE_MS = 750L
     }
 }

@@ -11,6 +11,7 @@
     <!-- Project color palette -->
     <color name="primary_purple">#DEBDFF</color>
     <color name="primary_green">#E1FFBA</color>
+    <color name="accent_red">#FF6B6B</color>
     
     <!-- Custom colors for music app -->
     <color name="background_dark">#05060F</color>

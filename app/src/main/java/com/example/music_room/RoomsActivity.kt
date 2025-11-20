@@ -16,11 +16,16 @@ class RoomsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRoomsBinding
     private val repository = AuroraServiceLocator.repository
+    private var lastClickTime = 0L
     private val roomsAdapter = RoomsAdapter { snapshot ->
+        if (System.currentTimeMillis() - lastClickTime < 1000) return@RoomsAdapter
+        lastClickTime = System.currentTimeMillis()
+        
         val intent = Intent(this, RoomDetailActivity::class.java).apply {
             putExtra(RoomDetailActivity.EXTRA_ROOM_ID, snapshot.room.id)
             putExtra(RoomDetailActivity.EXTRA_ROOM_NAME, snapshot.room.name)
             putExtra(RoomDetailActivity.EXTRA_ROOM_LOCKED, snapshot.isLocked)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_HOST_ID, snapshot.room.hostId)
         }
         startActivity(intent)
     }
@@ -48,17 +53,19 @@ class RoomsActivity : AppCompatActivity() {
     }
 
     private suspend fun loadRooms() {
-        binding.roomsLoading.isVisible = true
+        binding.roomsSkeleton.isVisible = true
+        binding.roomsRecyclerView.isVisible = false
         repository.getRooms()
             .onSuccess { rooms ->
                 roomsAdapter.submitList(rooms)
                 binding.roomsEmptyState.isVisible = rooms.isEmpty()
+                binding.roomsRecyclerView.isVisible = true
             }
             .onFailure { error ->
                 binding.roomsEmptyState.isVisible = true
                 binding.roomsEmptyState.text = error.message ?: getString(R.string.rooms_empty)
                 Toast.makeText(this, error.message ?: getString(R.string.rooms_empty), Toast.LENGTH_LONG).show()
             }
-        binding.roomsLoading.isVisible = false
+        binding.roomsSkeleton.isVisible = false
     }
 }

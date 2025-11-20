@@ -19,7 +19,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="16dp">
+        android:paddingBottom="21dp">
 
         <!-- Top Bar -->
         <LinearLayout
@@ -27,7 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
+            android:padding="21dp"
             android:gravity="center_vertical"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -38,7 +38,7 @@
                 android:text="@string/menu_label"
                 android:textColor="@color/primary_purple"
                 android:textSize="14sp"
-                app:cornerRadius="24dp"
+                app:cornerRadius="21dp"
                 app:strokeColor="@color/primary_purple"
                 app:strokeWidth="1dp"
                 style="@style/Widget.Material3.Button.OutlinedButton"
@@ -54,7 +54,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_search"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="13dp"
                 app:tint="@color/white"/>
 
             <ImageView
@@ -74,8 +74,8 @@
             android:text="@string/welcome_message"
             android:textColor="@color/white"
             android:textSize="14sp"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginStart="21dp"
+            android:layout_marginTop="13dp"
             app:layout_constraintTop_toBottomOf="@id/topBar"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -89,9 +89,9 @@
             android:textSize="28sp"
             android:textStyle="bold"
             android:lineSpacingExtra="2dp"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="4dp"
+            android:layout_marginStart="21dp"
+            android:layout_marginEnd="21dp"
+            android:layout_marginTop="5dp"
             app:layout_constraintTop_toBottomOf="@id/welcomeText"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
@@ -102,9 +102,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginStart="21dp"
+            android:layout_marginEnd="21dp"
+            android:layout_marginTop="21dp"
             android:gravity="center_vertical"
             app:layout_constraintTop_toBottomOf="@id/mainTitle">
 
@@ -131,27 +131,24 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/trendingCard"
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="12dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="21dp"
+            android:layout_marginEnd="21dp"
+            android:layout_marginTop="13dp"
             app:cardBackgroundColor="@color/card_background"
-            app:cardCornerRadius="20dp"
+            app:cardCornerRadius="21dp"
             app:cardElevation="0dp"
             android:alpha="0.75"
             app:strokeColor="@color/glass_stroke"
             app:strokeWidth="1dp"
             app:layout_constraintTop_toBottomOf="@id/trendingHeader"
-            app:layout_constraintBottom_toTopOf="@id/popularHeader"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintHeight_percent="0.35">
+            app:layout_constraintEnd_toEndOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="16dp">
+                android:padding="21dp">
 
                 <!-- Live Indicator -->
                 <View
@@ -192,7 +189,7 @@
                     tools:text="24"
                     android:textColor="@color/white"
                     android:textSize="14sp"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="5dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 
@@ -205,7 +202,7 @@
                     android:textColor="@color/white"
                     android:textSize="20sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="21dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/liveText"/>
@@ -218,7 +215,7 @@
                     tools:text="Hosted by Alex"
                     android:textColor="@color/text_tertiary"
                     android:textSize="14sp"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="5dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/roomName"/>
@@ -231,7 +228,7 @@
                     android:text="@string/now_playing_label"
                     android:textColor="@color/text_caption"
                     android:textSize="12sp"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="21dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/hostName"/>
 
@@ -243,7 +240,7 @@
                     android:textColor="@color/primary_purple"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="5dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/nowPlayingLabel"/>
@@ -255,7 +252,7 @@
                     tools:text="The Weeknd"
                     android:textColor="@color/text_tertiary"
                     android:textSize="14sp"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="3dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/currentSong"/>
@@ -268,9 +265,17 @@
                     android:text="@string/join_room_button"
                     android:textColor="@color/black"
                     android:textSize="14sp"
-                    app:cornerRadius="20dp"
+                    app:cornerRadius="21dp"
                     android:backgroundTint="@color/primary_green"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="13dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/currentArtist"/>
 
@@ -284,13 +289,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginStart="21dp"
+            android:layout_marginEnd="21dp"
+            android:layout_marginTop="21dp"
             android:gravity="center_vertical"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/popularAlbumsRecyclerView"
             app:layout_constraintTop_toBottomOf="@id/trendingCard">
 
             <TextView
@@ -318,10 +322,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="16dp"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
+            android:layout_marginTop="13dp"
+            android:layout_marginBottom="21dp"
+            android:paddingStart="21dp"
+            android:paddingEnd="21dp"
             android:clipToPadding="false"
             app:layout_constraintTop_toBottomOf="@id/popularHeader"
             app:layout_constraintStart_toStartOf="parent"
@@ -338,10 +342,10 @@
             android:id="@+id/popularAlbumsRecyclerView"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="16dp"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
+            android:layout_marginTop="13dp"
+            android:layout_marginBottom="21dp"
+            android:paddingStart="21dp"
+            android:paddingEnd="21dp"
             android:clipToPadding="false"
             android:nestedScrollingEnabled="false"
             android:visibility="gone"

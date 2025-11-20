@@ -20,8 +20,11 @@ import com.example.music_room.data.remote.model.RoomSnapshotDto
 import com.example.music_room.data.remote.model.SearchRequestDto
 import com.example.music_room.data.remote.model.SearchResponseDto
 import com.example.music_room.data.remote.model.SeekRequestDto
+import com.example.music_room.data.remote.model.HeartbeatRequestDto
+import com.example.music_room.data.remote.model.DeleteRoomRequestDto
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
@@ -35,51 +38,79 @@ class AuroraRepository(
         api.search(SearchRequestDto(query))
     }
 
-    suspend fun getPlaybackState(): Result<PlaybackStateDto> = safeCall {
-        api.getPlaybackState()
+    suspend fun getPlaybackState(roomId: String): Result<PlaybackStateDto> = safeCall {
+        api.getPlaybackState(roomId)
     }
 
-    suspend fun playTrack(trackId: String, provider: String = "YOUTUBE"): Result<PlaybackStateDto> = safeCall {
-        api.play(PlayRequestDto(trackId = trackId, provider = provider))
+    suspend fun playTrack(roomId: String, trackId: String, provider: String = "YOUTUBE"): Result<PlaybackStateDto> = safeCall {
+        api.play(roomId, PlayRequestDto(trackId = trackId, provider = provider))
     }
 
-    suspend fun pause(): Result<PlaybackStateDto> = safeCall { api.pause() }
+    suspend fun pause(roomId: String): Result<PlaybackStateDto> = safeCall { api.pause(roomId) }
 
-    suspend fun resume(): Result<PlaybackStateDto> = safeCall { api.resume() }
+    suspend fun resume(roomId: String): Result<PlaybackStateDto> = safeCall { api.resume(roomId) }
 
-    suspend fun skip(): Result<PlaybackStateDto> = safeCall { api.skip() }
+    suspend fun skip(roomId: String): Result<PlaybackStateDto> = safeCall { api.skip(roomId) }
 
-    suspend fun next(): Result<PlaybackStateDto> = safeCall { api.next() }
+    suspend fun next(roomId: String): Result<PlaybackStateDto> = safeCall { api.next(roomId) }
 
-    suspend fun previous(): Result<PlaybackStateDto> = safeCall { api.previous() }
+    suspend fun previous(roomId: String): Result<PlaybackStateDto> = safeCall { api.previous(roomId) }
 
-    suspend fun seekTo(positionSeconds: Int): Result<PlaybackStateDto> = safeCall {
-        api.seek(SeekRequestDto(positionSeconds = positionSeconds))
+    suspend fun seekTo(roomId: String, positionSeconds: Int): Result<PlaybackStateDto> = safeCall {
+        api.seek(roomId, SeekRequestDto(positionSeconds = positionSeconds))
     }
 
-    suspend fun seekPercentage(percentage: Double): Result<PlaybackStateDto> = safeCall {
-        api.seek(SeekRequestDto(percentage = percentage))
+    suspend fun seekPercentage(roomId: String, percentage: Double): Result<PlaybackStateDto> = safeCall {
+        api.seek(roomId, SeekRequestDto(percentage = percentage))
     }
 
-    suspend fun addToQueue(trackId: String, provider: String = "YOUTUBE", addedBy: String? = null): Result<QueueResponseDto> = safeCall {
-        api.addToQueue(AddToQueueRequestDto(trackId = trackId, provider = provider, addedBy = addedBy))
+    suspend fun addToQueue(roomId: String, trackId: String, provider: String = "YOUTUBE", addedBy: String? = null): Result<QueueResponseDto> = safeCall {
+        api.addToQueue(roomId, AddToQueueRequestDto(trackId = trackId, provider = provider, addedBy = addedBy))
     }
 
-    suspend fun removeFromQueue(position: Int): Result<QueueResponseDto> = safeCall {
-        api.removeFromQueue(position)
+    suspend fun removeFromQueue(roomId: String, position: Int): Result<QueueResponseDto> = safeCall {
+        api.removeFromQueue(roomId, position)
     }
 
-    suspend fun reorderQueue(fromPosition: Int, toPosition: Int): Result<QueueResponseDto> = safeCall {
-        api.reorderQueue(ReorderQueueRequestDto(fromPosition, toPosition))
+    suspend fun reorderQueue(roomId: String, fromPosition: Int, toPosition: Int): Result<QueueResponseDto> = safeCall {
+        api.reorderQueue(roomId, ReorderQueueRequestDto(fromPosition, toPosition))
     }
 
-    suspend fun shuffleQueue(): Result<QueueResponseDto> = safeCall { api.shuffleQueue() }
+    suspend fun shuffleQueue(roomId: String): Result<QueueResponseDto> = safeCall { api.shuffleQueue(roomId) }
 
-    suspend fun clearQueue(): Result<QueueResponseDto> = safeCall { api.clearQueue() }
+    suspend fun clearQueue(roomId: String): Result<QueueResponseDto> = safeCall { api.clearQueue(roomId) }
 
-    suspend fun getQueue(): Result<QueueResponseDto> = safeCall { api.getQueue() }
+    suspend fun getQueue(roomId: String): Result<QueueResponseDto> = safeCall { api.getQueue(roomId) }
 
-    suspend fun getRooms(): Result<List<RoomSnapshotDto>> = safeCall { api.getRooms() }
+    suspend fun getRooms(): Result<List<RoomSnapshotDto>> = safeCall {
+        val rooms = api.getRooms()
+        // Fetch queues for all rooms in parallel to populate "Up Next"
+        // This is necessary because the rooms list endpoint doesn't include the full queue
+        withContext(Dispatchers.IO) {
+            rooms.map { room ->
+                async {
+                    try {
+                        val queueResponse = api.getQueue(room.room.id)
+                        val queue = queueResponse.queue
+                        val nowPlaying = room.nowPlaying?.copy(queue = queue) ?: PlaybackStateDto(
+                            currentTrack = null,
+                            positionSeconds = 0,
+                            isPlaying = false,
+                            queue = queue,
+                            shuffleEnabled = false,
+                            timestamp = System.currentTimeMillis(),
+                            streamUrl = null,
+                            streamFormat = null
+                        )
+                        room.copy(nowPlaying = nowPlaying)
+                    } catch (e: Exception) {
+                        // If queue fetch fails, just return the original room
+                        room
+                    }
+                }
+            }.map { it.await() }
+        }
+    }
 
     suspend fun createRoom(
         name: String,
@@ -108,6 +139,16 @@ class AuroraRepository(
 
     suspend fun leaveRoom(roomId: String, memberId: String): Result<Unit> = safeCall {
         api.leaveRoom(roomId, LeaveRoomRequestDto(memberId))
+        Unit
+    }
+
+    suspend fun sendHeartbeat(roomId: String, memberId: String): Result<Unit> = safeCall {
+        api.heartbeat(roomId, HeartbeatRequestDto(memberId))
+        Unit
+    }
+
+    suspend fun deleteRoom(roomId: String, memberId: String): Result<Unit> = safeCall {
+        api.deleteRoom(roomId, DeleteRoomRequestDto(memberId))
         Unit
     }
 

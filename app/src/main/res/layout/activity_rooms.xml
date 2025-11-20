@@ -5,35 +5,14 @@
     android:layout_height="match_parent">
 
     <!-- Base gradient background -->
-    <View
+    <com.example.music_room.ui.GradientView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/gradient_background"/>
-
-    <!-- Purple radial blob -->
-    <View
-        android:layout_width="350dp"
-        android:layout_height="350dp"
-        android:layout_marginStart="-100dp"
-        android:layout_marginTop="-50dp"
-        android:background="@drawable/radial_purple_blob"
-        android:alpha="0.6"/>
-
-    <!-- Cyan radial blob -->
-    <View
-        android:layout_width="320dp"
-        android:layout_height="320dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="-80dp"
-        android:layout_marginBottom="-80dp"
-        android:background="@drawable/radial_cyan_blob"
-        android:alpha="0.5"/>
+        android:layout_height="match_parent"/>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fitsSystemWindows="true"
-        android:padding="32dp">
+        android:fitsSystemWindows="true">
 
         <!-- Top Bar -->
         <TextView
@@ -44,6 +23,8 @@
             android:textColor="@color/white"
             android:textSize="28sp"
             android:textStyle="bold"
+            android:layout_marginTop="34dp"
+            android:layout_marginStart="34dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
 
@@ -55,6 +36,7 @@
             android:padding="12dp"
             android:background="@drawable/circle_button_background"
             app:tint="@color/primary_green"
+            android:layout_marginEnd="34dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/roomsTitle"
             app:layout_constraintBottom_toBottomOf="@id/roomsTitle"/>
@@ -68,7 +50,8 @@
             android:textColor="@color/white"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="34dp"
+            android:layout_marginStart="34dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/roomsTitle"/>
 
@@ -77,6 +60,8 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_marginTop="16dp"
+            android:layout_marginStart="34dp"
+            android:layout_marginEnd="34dp"
             android:clipToPadding="false"
             android:paddingBottom="16dp"
             app:layout_constraintTop_toBottomOf="@id/activeRoomsLabel"
@@ -92,21 +77,30 @@
             android:textColor="@color/white"
             android:gravity="center"
             android:visibility="gone"
+            android:layout_marginStart="34dp"
+            android:layout_marginEnd="34dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/activeRoomsLabel"/>
 
-        <ProgressBar
-            android:id="@+id/roomsLoading"
-            style="?android:attr/progressBarStyle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:indeterminate="true"
-            app:layout_constraintTop_toTopOf="@id/roomsRecyclerView"
-            app:layout_constraintBottom_toBottomOf="@id/roomsRecyclerView"
+        <LinearLayout
+            android:id="@+id/roomsSkeleton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="34dp"
+            android:layout_marginEnd="34dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/activeRoomsLabel"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:visibility="gone"/>
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <include layout="@layout/item_room_skeleton"/>
+            <include layout="@layout/item_room_skeleton"/>
+            <include layout="@layout/item_room_skeleton"/>
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

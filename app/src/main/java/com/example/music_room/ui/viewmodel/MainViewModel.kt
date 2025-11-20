@@ -143,45 +143,13 @@ class MainViewModel : ViewModel() {
             if (albums.isNotEmpty()) {
                 _uiState.update { it.copy(popularAlbums = albums, isAlbumsLoading = false) }
             } else {
-                 loadPopularAlbums(DEFAULT_SEARCH_QUERY)
+                 _uiState.update { it.copy(isAlbumsLoading = false) }
             }
         } catch (e: Exception) {
-             loadPopularAlbums(DEFAULT_SEARCH_QUERY)
+             _uiState.update { it.copy(isAlbumsLoading = false) }
         }
-    }
-
-    private suspend fun loadPopularAlbums(query: String) {
-        repository.search(query)
-            .onSuccess { response ->
-                val mapped = response.tracks.map { track ->
-                    Album(
-                        title = track.title,
-                        artist = track.artist,
-                        trackId = track.id,
-                        provider = track.provider,
-                        imageUrl = getHighResThumbnailUrl(track.thumbnailUrl),
-                        durationSeconds = track.durationSeconds,
-                        externalUrl = track.externalUrl
-                    )
-                }
-                _uiState.update { it.copy(popularAlbums = mapped, isAlbumsLoading = false) }
-            }
-            .onFailure { error ->
-                _uiState.update { it.copy(error = error.message, isAlbumsLoading = false) }
-            }
-    }
-
-    private fun getHighResThumbnailUrl(url: String?): String? {
-        if (url == null) return null
-        if (url.contains("i.ytimg.com")) {
-            return url.replace("default.jpg", "sddefault.jpg")
-                .replace("mqdefault.jpg", "sddefault.jpg")
-                .replace("hqdefault.jpg", "sddefault.jpg")
-        }
-        return url
     }
 
     companion object {
-        private const val DEFAULT_SEARCH_QUERY = "This week top hits"
     }
 }

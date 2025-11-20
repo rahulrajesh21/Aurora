@@ -18,10 +18,13 @@ import com.example.music_room.data.remote.model.RoomSnapshotDto
 import com.example.music_room.data.remote.model.SearchRequestDto
 import com.example.music_room.data.remote.model.SearchResponseDto
 import com.example.music_room.data.remote.model.SeekRequestDto
+import com.example.music_room.data.remote.model.HeartbeatRequestDto
+import com.example.music_room.data.remote.model.DeleteRoomRequestDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -34,47 +37,47 @@ interface AuroraApi {
     @POST("api/search")
     suspend fun search(@Body body: SearchRequestDto): SearchResponseDto
 
-    @GET("api/playback/state")
-    suspend fun getPlaybackState(): PlaybackStateDto
+    @GET("api/rooms/{roomId}/playback/state")
+    suspend fun getPlaybackState(@Path("roomId") roomId: String): PlaybackStateDto
 
-    @POST("api/playback/play")
-    suspend fun play(@Body body: PlayRequestDto): PlaybackStateDto
+    @POST("api/rooms/{roomId}/playback/play")
+    suspend fun play(@Path("roomId") roomId: String, @Body body: PlayRequestDto): PlaybackStateDto
 
-    @POST("api/playback/pause")
-    suspend fun pause(): PlaybackStateDto
+    @POST("api/rooms/{roomId}/playback/pause")
+    suspend fun pause(@Path("roomId") roomId: String): PlaybackStateDto
 
-    @POST("api/playback/resume")
-    suspend fun resume(): PlaybackStateDto
+    @POST("api/rooms/{roomId}/playback/resume")
+    suspend fun resume(@Path("roomId") roomId: String): PlaybackStateDto
 
-    @POST("api/playback/skip")
-    suspend fun skip(): PlaybackStateDto
+    @POST("api/rooms/{roomId}/playback/skip")
+    suspend fun skip(@Path("roomId") roomId: String): PlaybackStateDto
 
-    @POST("api/playback/next")
-    suspend fun next(): PlaybackStateDto
+    @POST("api/rooms/{roomId}/playback/next")
+    suspend fun next(@Path("roomId") roomId: String): PlaybackStateDto
 
-    @POST("api/playback/previous")
-    suspend fun previous(): PlaybackStateDto
+    @POST("api/rooms/{roomId}/playback/previous")
+    suspend fun previous(@Path("roomId") roomId: String): PlaybackStateDto
 
-    @POST("api/playback/seek")
-    suspend fun seek(@Body body: SeekRequestDto): PlaybackStateDto
+    @POST("api/rooms/{roomId}/playback/seek")
+    suspend fun seek(@Path("roomId") roomId: String, @Body body: SeekRequestDto): PlaybackStateDto
 
-    @POST("api/queue/add")
-    suspend fun addToQueue(@Body body: AddToQueueRequestDto): QueueResponseDto
+    @POST("api/rooms/{roomId}/queue/add")
+    suspend fun addToQueue(@Path("roomId") roomId: String, @Body body: AddToQueueRequestDto): QueueResponseDto
 
-    @DELETE("api/queue/{position}")
-    suspend fun removeFromQueue(@Path("position") position: Int): QueueResponseDto
+    @DELETE("api/rooms/{roomId}/queue/{position}")
+    suspend fun removeFromQueue(@Path("roomId") roomId: String, @Path("position") position: Int): QueueResponseDto
 
-    @PUT("api/queue/reorder")
-    suspend fun reorderQueue(@Body body: ReorderQueueRequestDto): QueueResponseDto
+    @PUT("api/rooms/{roomId}/queue/reorder")
+    suspend fun reorderQueue(@Path("roomId") roomId: String, @Body body: ReorderQueueRequestDto): QueueResponseDto
 
-    @DELETE("api/queue")
-    suspend fun clearQueue(): QueueResponseDto
+    @DELETE("api/rooms/{roomId}/queue")
+    suspend fun clearQueue(@Path("roomId") roomId: String): QueueResponseDto
 
-    @POST("api/queue/shuffle")
-    suspend fun shuffleQueue(): QueueResponseDto
+    @POST("api/rooms/{roomId}/queue/shuffle")
+    suspend fun shuffleQueue(@Path("roomId") roomId: String): QueueResponseDto
 
-    @GET("api/queue")
-    suspend fun getQueue(): QueueResponseDto
+    @GET("api/rooms/{roomId}/queue")
+    suspend fun getQueue(@Path("roomId") roomId: String): QueueResponseDto
 
     @GET("api/rooms")
     suspend fun getRooms(): List<RoomSnapshotDto>
@@ -92,6 +95,18 @@ interface AuroraApi {
     suspend fun leaveRoom(
         @Path("roomId") roomId: String,
         @Body body: LeaveRoomRequestDto
+    ): Response<Void>
+
+    @POST("api/rooms/{roomId}/heartbeat")
+    suspend fun heartbeat(
+        @Path("roomId") roomId: String,
+        @Body body: HeartbeatRequestDto
+    ): Response<Void>
+
+    @HTTP(method = "DELETE", path = "api/rooms/{roomId}", hasBody = true)
+    suspend fun deleteRoom(
+        @Path("roomId") roomId: String,
+        @Body body: DeleteRoomRequestDto
     ): Response<Void>
 
     @GET("api/rooms/{roomId}/members")
