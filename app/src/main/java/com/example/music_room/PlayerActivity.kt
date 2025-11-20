@@ -14,6 +14,8 @@ import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.databinding.ActivityPlayerBinding
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.MediaItem
+import com.example.music_room.service.MediaServiceManager
+import com.example.music_room.utils.PermissionUtils
 import kotlinx.coroutines.launch
 import com.example.music_room.R
 
@@ -29,6 +31,7 @@ class PlayerActivity : AppCompatActivity() {
     private var currentState: PlaybackStateDto? = null
     private var exoPlayer: ExoPlayer? = null
     private var currentStreamUrl: String? = null
+    private lateinit var mediaServiceManager: MediaServiceManager
     private val playbackTickerHandler = Handler(Looper.getMainLooper())
     private val playbackTicker = object : Runnable {
         override fun run() {
@@ -69,11 +72,20 @@ class PlayerActivity : AppCompatActivity() {
             binding.lyricsOverlay.isVisible = false
         }
 
+        // Initialize background media service
+        mediaServiceManager = MediaServiceManager.getInstance(this)
+
         lifecycleScope.launch { refreshPlaybackState() }
     }
 
     override fun onStart() {
         super.onStart()
+        
+        // Request notification permission and start background service
+        if (PermissionUtils.requestNotificationPermissionIfNeeded(this)) {
+            startBackgroundService()
+        }
+        
         playbackSocket.connect(
             onState = { state -> runOnUiThread { applyState(state) } },
             onError = { error ->
@@ -87,6 +99,10 @@ class PlayerActivity : AppCompatActivity() {
             }
         )
     }
+    
+    private fun startBackgroundService() {
+        roomId?.let { mediaServiceManager.startPlaybackService(it) }
+    }
 
     override fun onStop() {
         playbackSocket.disconnect()
@@ -99,6 +115,21 @@ class PlayerActivity : AppCompatActivity() {
         exoPlayer?.release()
         exoPlayer = null
         super.onDestroy()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        PermissionUtils.handlePermissionResult(
+            requestCode, permissions, grantResults,
+            onGranted = { startBackgroundService() },
+            onDenied = { 
+                Toast.makeText(this, "Notification permission required for background playback", Toast.LENGTH_LONG).show()
+            }
+        )
     }
 
     private suspend fun refreshPlaybackState() {
