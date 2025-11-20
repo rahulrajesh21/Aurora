@@ -50,6 +50,7 @@ export class ServiceContainer {
       this.providers,
       this.webSocketManager,
       this.config,
+      this.roomManager,
     );
   }
 

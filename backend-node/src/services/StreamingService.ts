@@ -14,6 +14,7 @@ import { logger } from '../utils/logger';
 import { SearchResult } from '../models/SearchResult';
 import { AppConfig } from '../config/appConfig';
 import { RoomSession } from './RoomSession';
+import { RoomManager } from './RoomManager';
 
 export class StreamingService {
   private readonly sessions = new Map<string, RoomSession>();
@@ -22,6 +23,7 @@ export class StreamingService {
     private readonly providers: Map<ProviderType, MusicProvider>,
     private readonly webSocketManager: WebSocketManager,
     private readonly config: AppConfig,
+    private readonly roomManager: RoomManager,
   ) {}
 
   private async getSession(roomId: string): Promise<RoomSession> {
@@ -30,6 +32,8 @@ export class StreamingService {
       session = new RoomSession(roomId, this.config, this.providers);
       await session.init();
       this.sessions.set(roomId, session);
+      const restoredState = await session.stateManager.getState();
+      await this.roomManager.updatePlaybackState(roomId, restoredState);
     }
     return session;
   }
@@ -37,6 +41,7 @@ export class StreamingService {
   private async updateAndBroadcast(roomId: string, session: RoomSession, state: PlaybackState): Promise<void> {
     await session.stateManager.updateState(state);
     await session.stateManager.persistState();
+    await this.roomManager.updatePlaybackState(roomId, state);
     await this.webSocketManager.broadcastState(roomId, state);
   }
 
