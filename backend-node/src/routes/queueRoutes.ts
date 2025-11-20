@@ -41,7 +41,8 @@ function parseProvider(provider?: string): ProviderType | null {
 export function createQueueRoutes(streamingService: StreamingService): Router {
   const router = Router();
 
-  router.post('/api/queue/add', async (req: Request, res: Response) => {
+  router.post('/api/rooms/:roomId/queue/add', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
     const body = req.body as AddToQueueRequest;
     if (!body?.trackId) {
       res.status(400).json(createError('INVALID_REQUEST', 'Track ID is required'));
@@ -54,8 +55,8 @@ export function createQueueRoutes(streamingService: StreamingService): Router {
     }
 
     try {
-      await streamingService.addToQueue(body.trackId, provider);
-      respondWithQueue(res, streamingService.getQueue());
+      await streamingService.addToQueue(roomId, body.trackId, provider);
+      respondWithQueue(res, await streamingService.getQueue(roomId));
     } catch (error) {
       if (error instanceof QueueError) {
         res.status(400).json(createError('QUEUE_ERROR', error.message));
@@ -66,15 +67,16 @@ export function createQueueRoutes(streamingService: StreamingService): Router {
     }
   });
 
-  router.delete('/api/queue/:position', async (req: Request, res: Response) => {
+  router.delete('/api/rooms/:roomId/queue/:position', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
     const position = Number(req.params.position);
     if (Number.isNaN(position)) {
       res.status(400).json(createError('INVALID_REQUEST', 'Invalid position parameter'));
       return;
     }
     try {
-      await streamingService.removeFromQueue(position);
-      respondWithQueue(res, streamingService.getQueue());
+      await streamingService.removeFromQueue(roomId, position);
+      respondWithQueue(res, await streamingService.getQueue(roomId));
     } catch (error) {
       if (error instanceof QueueError) {
         res.status(400).json(createError('QUEUE_ERROR', error.message));
@@ -85,7 +87,8 @@ export function createQueueRoutes(streamingService: StreamingService): Router {
     }
   });
 
-  router.put('/api/queue/reorder', async (req: Request, res: Response) => {
+  router.put('/api/rooms/:roomId/queue/reorder', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
     const body = req.body as ReorderQueueRequest;
     if (
       typeof body?.fromPosition !== 'number' ||
@@ -97,8 +100,8 @@ export function createQueueRoutes(streamingService: StreamingService): Router {
       return;
     }
     try {
-      await streamingService.reorderQueue(body.fromPosition, body.toPosition);
-      respondWithQueue(res, streamingService.getQueue());
+      await streamingService.reorderQueue(roomId, body.fromPosition, body.toPosition);
+      respondWithQueue(res, await streamingService.getQueue(roomId));
     } catch (error) {
       if (error instanceof QueueError) {
         res.status(400).json(createError('QUEUE_ERROR', error.message));
@@ -109,9 +112,10 @@ export function createQueueRoutes(streamingService: StreamingService): Router {
     }
   });
 
-  router.delete('/api/queue', async (_req: Request, res: Response) => {
+  router.delete('/api/rooms/:roomId/queue', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
     try {
-      await streamingService.clearQueue();
+      await streamingService.clearQueue(roomId);
       respondWithQueue(res, []);
     } catch (error) {
       logger.error({ error }, 'Clear queue failed');
@@ -119,10 +123,11 @@ export function createQueueRoutes(streamingService: StreamingService): Router {
     }
   });
 
-  router.post('/api/queue/shuffle', async (_req: Request, res: Response) => {
+  router.post('/api/rooms/:roomId/queue/shuffle', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
     try {
-      await streamingService.shuffleQueue();
-      respondWithQueue(res, streamingService.getQueue());
+      await streamingService.shuffleQueue(roomId);
+      respondWithQueue(res, await streamingService.getQueue(roomId));
     } catch (error) {
       if (error instanceof QueueError) {
         res.status(400).json(createError('QUEUE_ERROR', error.message));
@@ -133,8 +138,14 @@ export function createQueueRoutes(streamingService: StreamingService): Router {
     }
   });
 
-  router.get('/api/queue', (_req: Request, res: Response) => {
-    respondWithQueue(res, streamingService.getQueue());
+  router.get('/api/rooms/:roomId/queue', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    try {
+      respondWithQueue(res, await streamingService.getQueue(roomId));
+    } catch (error) {
+      logger.error({ error }, 'Get queue failed');
+      res.status(500).json(createError('GET_QUEUE_FAILED', 'Failed to get queue'));
+    }
   });
 
   return router;

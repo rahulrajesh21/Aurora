@@ -9,26 +9,35 @@ import {
   StreamingError,
   TrackNotFoundError,
 } from '../models/StreamingError';
-import { QueueManager } from './QueueManager';
-import { PlaybackEngine } from './PlaybackEngine';
-import { StateManager } from './StateManager';
 import { WebSocketManager } from './WebSocketManager';
 import { logger } from '../utils/logger';
 import { SearchResult } from '../models/SearchResult';
+import { AppConfig } from '../config/appConfig';
+import { RoomSession } from './RoomSession';
 
 export class StreamingService {
+  private readonly sessions = new Map<string, RoomSession>();
+
   constructor(
     private readonly providers: Map<ProviderType, MusicProvider>,
-    private readonly queueManager: QueueManager,
-    private readonly playbackEngine: PlaybackEngine,
-    private readonly stateManager: StateManager,
     private readonly webSocketManager: WebSocketManager,
+    private readonly config: AppConfig,
   ) {}
 
-  private async updateAndBroadcast(state: PlaybackState): Promise<void> {
-    await this.stateManager.updateState(state);
-    await this.stateManager.persistState();
-    await this.webSocketManager.broadcastState(state);
+  private async getSession(roomId: string): Promise<RoomSession> {
+    let session = this.sessions.get(roomId);
+    if (!session) {
+      session = new RoomSession(roomId, this.config, this.providers);
+      await session.init();
+      this.sessions.set(roomId, session);
+    }
+    return session;
+  }
+
+  private async updateAndBroadcast(roomId: string, session: RoomSession, state: PlaybackState): Promise<void> {
+    await session.stateManager.updateState(state);
+    await session.stateManager.persistState();
+    await this.webSocketManager.broadcastState(roomId, state);
   }
 
   async search(query: string): Promise<SearchResult> {
@@ -36,7 +45,7 @@ export class StreamingService {
       throw new NetworkError('Search query cannot be blank');
     }
 
-  const allTracks: Track[] = [];
+    const allTracks: Track[] = [];
     const providersUsed: ProviderType[] = [];
 
     for (const [providerType, provider] of this.providers.entries()) {
@@ -60,8 +69,10 @@ export class StreamingService {
     return { tracks: sanitized, query, providers: providersUsed };
   }
 
-  async play(trackId: string, providerType: ProviderType): Promise<PlaybackState> {
-    logger.info({ trackId, providerType }, 'Starting playback');
+  async play(roomId: string, trackId: string, providerType: ProviderType): Promise<PlaybackState> {
+    logger.info({ roomId, trackId, providerType }, 'Starting playback');
+    const session = await this.getSession(roomId);
+    
     const provider = this.providers.get(providerType);
     if (!provider) {
       throw new ProviderError(providerType, 'Provider not available');
@@ -70,69 +81,76 @@ export class StreamingService {
     if (!track) {
       throw new TrackNotFoundError(trackId, providerType);
     }
-    await this.playbackEngine.startPlayback(track);
-    const newState = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(newState);
+    await session.playbackEngine.startPlayback(track);
+    const newState = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, newState);
     return newState;
   }
 
-  async pause(): Promise<PlaybackState> {
-    await this.playbackEngine.pause();
-    const newState = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(newState);
+  async pause(roomId: string): Promise<PlaybackState> {
+    const session = await this.getSession(roomId);
+    await session.playbackEngine.pause();
+    const newState = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, newState);
     return newState;
   }
 
-  async resume(): Promise<PlaybackState> {
+  async resume(roomId: string): Promise<PlaybackState> {
+    const session = await this.getSession(roomId);
     try {
-      await this.playbackEngine.resume();
+      await session.playbackEngine.resume();
     } catch (error) {
       if (error instanceof NetworkError && error.message.includes('No track to resume')) {
-        const nextItem = await this.queueManager.popNextTrack();
+        const nextItem = await session.queueManager.popNextTrack();
         if (!nextItem) {
           throw new QueueError('No track available in queue to start playback');
         }
-        await this.playbackEngine.startPlayback(nextItem.track);
+        await session.playbackEngine.startPlayback(nextItem.track);
       } else {
         throw error;
       }
     }
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
     return state;
   }
 
-  async skip(): Promise<PlaybackState> {
-    await this.playbackEngine.playNext();
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+  async skip(roomId: string): Promise<PlaybackState> {
+    const session = await this.getSession(roomId);
+    await session.playbackEngine.playNext();
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
     return state;
   }
 
-  async seek(positionSeconds: number): Promise<PlaybackState> {
-    await this.playbackEngine.seekTo(positionSeconds);
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+  async seek(roomId: string, positionSeconds: number): Promise<PlaybackState> {
+    const session = await this.getSession(roomId);
+    await session.playbackEngine.seekTo(positionSeconds);
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
     return state;
   }
 
-  async seekByPercentage(percentage: number): Promise<PlaybackState> {
+  async seekByPercentage(roomId: string, percentage: number): Promise<PlaybackState> {
     if (percentage < 0 || percentage > 100) {
       throw new NetworkError('Percentage must be between 0 and 100');
     }
-    const currentState = this.playbackEngine.getCurrentState();
+    const session = await this.getSession(roomId);
+    const currentState = session.playbackEngine.getCurrentState();
     if (!currentState.currentTrack) {
       throw new NetworkError('No track currently playing');
     }
     const positionSeconds = Math.floor((percentage / 100) * currentState.currentTrack.durationSeconds);
-    return this.seek(positionSeconds);
+    return this.seek(roomId, positionSeconds);
   }
 
-  async getState(): Promise<PlaybackState> {
-    return this.stateManager.getState();
+  async getState(roomId: string): Promise<PlaybackState> {
+    const session = await this.getSession(roomId);
+    return session.stateManager.getState();
   }
 
-  async addToQueue(trackId: string, providerType: ProviderType): Promise<void> {
+  async addToQueue(roomId: string, trackId: string, providerType: ProviderType): Promise<void> {
+    const session = await this.getSession(roomId);
     const provider = this.providers.get(providerType);
     if (!provider) {
       throw new ProviderError(providerType, 'Provider not available');
@@ -141,36 +159,41 @@ export class StreamingService {
     if (!track) {
       throw new TrackNotFoundError(trackId, providerType);
     }
-    await this.queueManager.addTrack(track, 'user');
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+    await session.queueManager.addTrack(track, 'user');
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
   }
 
-  async removeFromQueue(position: number): Promise<void> {
-    await this.queueManager.removeTrack(position);
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+  async removeFromQueue(roomId: string, position: number): Promise<void> {
+    const session = await this.getSession(roomId);
+    await session.queueManager.removeTrack(position);
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
   }
 
-  async reorderQueue(from: number, to: number): Promise<void> {
-    await this.queueManager.reorderTrack(from, to);
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+  async reorderQueue(roomId: string, from: number, to: number): Promise<void> {
+    const session = await this.getSession(roomId);
+    await session.queueManager.reorderTrack(from, to);
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
   }
 
-  async clearQueue(): Promise<void> {
-    await this.queueManager.clearQueue();
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+  async clearQueue(roomId: string): Promise<void> {
+    const session = await this.getSession(roomId);
+    await session.queueManager.clearQueue();
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
   }
 
-  async shuffleQueue(): Promise<void> {
-    await this.queueManager.shuffle();
-    const state = this.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(state);
+  async shuffleQueue(roomId: string): Promise<void> {
+    const session = await this.getSession(roomId);
+    await session.queueManager.shuffle();
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
   }
 
-  getQueue(): Track[] {
-    return this.queueManager.getQueueSnapshot();
+  async getQueue(roomId: string): Promise<Track[]> {
+    const session = await this.getSession(roomId);
+    return session.queueManager.getQueueSnapshot();
   }
 }

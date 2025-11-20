@@ -10,7 +10,8 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "lint": "eslint --ext .ts src",
     "test": "npm run build",
-    "db:migrate": "ts-node src/scripts/migrateLibsql.ts"
+    "db:migrate": "ts-node src/scripts/migrateLibsql.ts",
+    "db:clear-rooms": "ts-node src/scripts/clearRooms.ts"
   },
   "engines": {
     "@fastify/ajv-compiler": "^4.2.0",

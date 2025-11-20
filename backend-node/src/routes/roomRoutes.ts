@@ -28,6 +28,14 @@ interface LeaveRoomRequest {
   memberId?: string;
 }
 
+interface HeartbeatRequest {
+  memberId?: string;
+}
+
+interface DeleteRoomRequest {
+  memberId?: string;
+}
+
 export function createRoomRoutes(roomManager: RoomManager): Router {
   const router = Router();
 
@@ -76,6 +84,36 @@ export function createRoomRoutes(roomManager: RoomManager): Router {
     }
     try {
       await roomManager.leaveRoom(roomId, body.memberId);
+      res.status(204).send();
+    } catch (error) {
+      handleRoomError(res, error);
+    }
+  });
+
+  router.post('/api/rooms/:roomId/heartbeat', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    const body = req.body as HeartbeatRequest;
+    if (!body.memberId) {
+      res.status(400).json(createError('INVALID_REQUEST', 'memberId is required'));
+      return;
+    }
+    try {
+      await roomManager.recordHeartbeat(roomId, body.memberId);
+      res.status(204).send();
+    } catch (error) {
+      handleRoomError(res, error);
+    }
+  });
+
+  router.delete('/api/rooms/:roomId', async (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    const body = req.body as DeleteRoomRequest;
+    if (!body.memberId) {
+      res.status(400).json(createError('INVALID_REQUEST', 'memberId is required'));
+      return;
+    }
+    try {
+      await roomManager.deleteRoom(roomId, body.memberId);
       res.status(204).send();
     } catch (error) {
       handleRoomError(res, error);

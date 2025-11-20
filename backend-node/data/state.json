@@ -1,18 +1,46 @@
 {
   "currentTrack": {
-    "id": "ZvXN0TcZLfQ",
-    "title": "Fortuner (Official Video) Gulshan Music,Jaat Nia,Ruchika Jangid | New Haryanvi Songs Haryanavi 2025",
-    "artist": "VATS RECORDS",
-    "durationSeconds": 173,
+    "id": "-W6_6WHBm1Q",
+    "title": "Nyeh Heh Heh!",
+    "artist": "Toby Fox - Topic",
+    "durationSeconds": 33,
     "provider": "YOUTUBE",
-    "thumbnailUrl": "https://i.ytimg.com/vi/ZvXN0TcZLfQ/default.jpg",
-    "externalUrl": "https://www.youtube.com/watch?v=ZvXN0TcZLfQ"
+    "thumbnailUrl": "https://i.ytimg.com/vi/-W6_6WHBm1Q/default.jpg",
+    "externalUrl": "https://www.youtube.com/watch?v=-W6_6WHBm1Q"
   },
-  "positionSeconds": 42,
+  "positionSeconds": 0,
   "isPlaying": false,
-  "queue": [],
+  "queue": [
+    {
+      "id": "-W6_6WHBm1Q",
+      "title": "Nyeh Heh Heh!",
+      "artist": "Toby Fox - Topic",
+      "durationSeconds": 33,
+      "provider": "YOUTUBE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/-W6_6WHBm1Q/default.jpg",
+      "externalUrl": "https://www.youtube.com/watch?v=-W6_6WHBm1Q"
+    },
+    {
+      "id": "qzjaU4yesok",
+      "title": "HEH HEH",
+      "artist": "Release - Topic",
+      "durationSeconds": 108,
+      "provider": "YOUTUBE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/qzjaU4yesok/default.jpg",
+      "externalUrl": "https://www.youtube.com/watch?v=qzjaU4yesok"
+    },
+    {
+      "id": "AMT698ArSfQ",
+      "title": "Las Ketchup - The Ketchup Song (Asereje) (Spanglish Version) (Official Video)",
+      "artist": "Altra Moda Music",
+      "durationSeconds": 211,
+      "provider": "YOUTUBE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/AMT698ArSfQ/default.jpg",
+      "externalUrl": "https://www.youtube.com/watch?v=AMT698ArSfQ"
+    }
+  ],
   "shuffleEnabled": false,
-  "timestamp": 1763552124095,
-  "streamUrl": "https://rr5---sn-gwpa-h55r.googlevideo.com/videoplayback?expire=1763573714&ei=cqsdadaQBOzTpt8P2f7ggQ0&ip=115.245.158.70&id=o-AC9k1o79rSP3lOV3EzwGk5-FxA5o9-7Id4O-XDxXHKpy&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=293&met=1763552114%2C&mh=tO&mm=31%2C26&mn=sn-gwpa-h55r%2Csn-cvh7knzk&ms=au%2Conr&mv=m&mvi=5&pl=22&rms=au%2Cau&initcwndbps=1151250&bui=AdEuB5S6TiTDSUXR0ez8YFW2PfP3sppBsoEFySWCMqgfWdIRy9pLHFMCEroHOHzZIwivBz4yu-OZn4hi&vprv=1&svpuc=1&mime=audio%2Fwebm&ns=BT76ewhR_NjjGxxyrfxrs_MQ&rqh=1&gir=yes&clen=2941058&dur=172.501&lmt=1757364409009847&mt=1763551786&fvip=1&keepalive=yes&lmw=1&fexp=51557447%2C51565115%2C51565682%2C51580970%2C51673517%2C51673518&c=TVHTML5&sefc=1&txp=4532534&n=my_CAdymvd-c0w&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cvprv%2Csvpuc%2Cmime%2Cns%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRAIgFDb3bVYZGXY63uLeb6jp48CvvxjPlUlAufCUl1M-9z8CIEXwuL5FlZSiFWZPElt8NR6Hpw7Ete-nxpjSscAs5rFF&sig=AJfQdSswRQIhAKrxISbAM6Wx-PcseWCGUD8miQDdGSEgoqTUMeGHjuDkAiBzWTqnwSTWOtPGOQlj7RL2gvWlE6KUvsPf4u8gQYWGPA%3D%3D",
+  "timestamp": 1763575820892,
+  "streamUrl": "https://rr3---sn-gwpa-h55ee.googlevideo.com/videoplayback?expire=1763597404&ei=_AceaZjDEfba4-EP7faS8As&ip=115.245.158.70&id=o-AO5ZwVSjH-0zKtQAvxedOjopHvOs4XB72BZLBNGMo8q_&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=77&met=1763575804%2C&mh=Dw&mm=31%2C26&mn=sn-gwpa-h55ee%2Csn-cvh7knsz&ms=au%2Conr&mv=m&mvi=3&pl=22&rms=au%2Cau&gcr=in&initcwndbps=981250&bui=AdEuB5SqbEY9V8a8yewWmQ61tf7QDw_XIgskI3MMPxuYQLDzFbtAzQdnTIrLujzxN3P1R5Cb8yZ6_GbG&spc=6b0G_Jt5EnK6&vprv=1&svpuc=1&mime=audio%2Fwebm&rqh=1&gir=yes&clen=558983&dur=32.421&lmt=1759790837501763&mt=1763575330&fvip=5&keepalive=yes&fexp=51552689%2C51565115%2C51565682%2C51580968&c=ANDROID&txp=1432534&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cgcr%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&sig=AJfQdSswRAIgX0OBo0eBWjbaC70ec8tXrr4potFX_wkfyQ75CR173RICIBq2gYrMNNc40T0CvZub41BmPxohF4JUL4KcOVCzXMSb&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRgIhAOZw0dV8zkytfqJGhLbJ6_WuXkbKVEekPl-Ey88xKJPqAiEA7oBgkfeDK286Jaqn7on0LDlwMrjXpK-xJOGx2XWd_24%3D",
   "streamFormat": "WEBM"
 }

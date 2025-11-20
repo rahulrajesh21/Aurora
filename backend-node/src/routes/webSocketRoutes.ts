@@ -13,16 +13,25 @@ export function registerWebSocketRoutes(server: Server, container: ServiceContai
 
   const wss = new WebSocketServer({ server, path: '/api/playback/stream' });
 
-  wss.on('connection', async (socket: WebSocket) => {
+  wss.on('connection', async (socket: WebSocket, req) => {
     const sessionId = uuid();
-    logger.info({ sessionId }, 'WebSocket client connected');
-    webSocketManager.addConnection(sessionId, socket);
+    const url = new URL(req.url ?? '', `http://${req.headers.host}`);
+    const roomId = url.searchParams.get('roomId');
+
+    if (!roomId) {
+      logger.error({ sessionId }, 'WebSocket connection missing roomId');
+      socket.close(1008, 'roomId required');
+      return;
+    }
+
+    logger.info({ sessionId, roomId }, 'WebSocket client connected');
+    webSocketManager.addConnection(roomId, sessionId, socket);
 
     try {
-      const state = await streamingService.getState();
+      const state = await streamingService.getState(roomId);
       socket.send(JSON.stringify(state));
     } catch (error) {
-      logger.error({ error, sessionId }, 'Failed to send initial state');
+      logger.error({ error, sessionId, roomId }, 'Failed to send initial state');
     }
 
     socket.on('message', (message: Buffer) => {
@@ -33,13 +42,13 @@ export function registerWebSocketRoutes(server: Server, container: ServiceContai
     });
 
     socket.on('close', () => {
-      webSocketManager.removeConnection(sessionId);
-      logger.info({ sessionId }, 'WebSocket client disconnected');
+      webSocketManager.removeConnection(roomId, sessionId);
+      logger.info({ sessionId, roomId }, 'WebSocket client disconnected');
     });
 
-  socket.on('error', (error: Error) => {
-      logger.error({ error, sessionId }, 'WebSocket error');
-      webSocketManager.removeConnection(sessionId);
+    socket.on('error', (error: Error) => {
+      logger.error({ error, sessionId, roomId }, 'WebSocket error');
+      webSocketManager.removeConnection(roomId, sessionId);
     });
   });
 }

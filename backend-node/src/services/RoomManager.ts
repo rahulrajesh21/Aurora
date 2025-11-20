@@ -57,6 +57,7 @@ export class RoomManager {
       const invites = await this.storage.getInvites(room.id);
       this.invites.set(room.id, this.filterActiveInvites(invites));
       this.contexts.set(room.id, { state: createEmptyState() });
+      await this.pruneInactiveMembers(room.id);
     }
   }
 
@@ -108,6 +109,9 @@ export class RoomManager {
 
   async listRooms(): Promise<RoomSnapshot[]> {
     return this.mutex.runExclusive(async () => {
+      for (const roomId of this.rooms.keys()) {
+        await this.pruneInactiveMembers(roomId);
+      }
       return [...this.rooms.values()].map((room) => ({
         room,
         memberCount: this.members.get(room.id)?.length ?? 0,
@@ -120,6 +124,7 @@ export class RoomManager {
   async joinRoom(input: JoinRoomInput): Promise<RoomMember> {
     return this.mutex.runExclusive(async () => {
       const room = await this.ensureRoomLoaded(input.roomId);
+      await this.pruneInactiveMembers(room.id);
       const members = this.members.get(room.id) ?? [];
 
       if (members.length >= room.maxMembers) {
@@ -165,20 +170,15 @@ export class RoomManager {
   async leaveRoom(roomId: string, memberId: string): Promise<void> {
     await this.mutex.runExclusive(async () => {
       const room = await this.ensureRoomLoaded(roomId);
+      await this.pruneInactiveMembers(room.id);
       const members = this.members.get(room.id) ?? [];
       const index = members.findIndex((member) => member.id === memberId);
       if (index === -1) {
         return;
       }
       const [removed] = members.splice(index, 1);
-      if (removed.isHost && members.length) {
-        const newHost = members[0];
-        newHost.isHost = true;
-        room.hostId = newHost.id;
-        room.hostName = newHost.displayName;
-        room.updatedAt = Date.now();
-        await this.storage.saveRoom(room);
-        this.rooms.set(room.id, room);
+      if (removed.isHost) {
+        await this.ensureHostAssignment(room, members);
       }
       await this.storage.saveMembers(room.id, members);
       this.members.set(room.id, members);
@@ -232,6 +232,7 @@ export class RoomManager {
   async getRoomMembers(roomId: string): Promise<RoomMember[]> {
     return this.mutex.runExclusive(async () => {
       const room = await this.ensureRoomLoaded(roomId);
+      await this.pruneInactiveMembers(room.id);
       return [...(this.members.get(room.id) ?? [])];
     });
   }
@@ -257,6 +258,35 @@ export class RoomManager {
     });
   }
 
+  async recordHeartbeat(roomId: string, memberId: string): Promise<void> {
+    await this.mutex.runExclusive(async () => {
+      const room = await this.ensureRoomLoaded(roomId);
+      const members = this.members.get(room.id) ?? [];
+      const member = members.find((item) => item.id === memberId);
+      if (!member) {
+        throw new RoomAccessError('Member not found in room');
+      }
+      member.lastActiveAt = Date.now();
+      await this.storage.saveMembers(room.id, members);
+      this.members.set(room.id, members);
+    });
+  }
+
+  async deleteRoom(roomId: string, requesterId: string): Promise<void> {
+    await this.mutex.runExclusive(async () => {
+      const room = await this.ensureRoomLoaded(roomId);
+      if (room.hostId !== requesterId) {
+        throw new RoomAccessError('Only the room creator can delete this room');
+      }
+      await this.storage.deleteRoom(roomId);
+      this.rooms.delete(roomId);
+      this.members.delete(roomId);
+      this.invites.delete(roomId);
+      this.contexts.delete(roomId);
+      logger.info({ roomId, requesterId }, 'Room deleted');
+    });
+  }
+
   private async ensureRoomLoaded(roomId: string): Promise<Room> {
     const cached = this.rooms.get(roomId);
     if (cached) {
@@ -274,6 +304,7 @@ export class RoomManager {
     if (!this.contexts.has(roomId)) {
       this.contexts.set(roomId, { state: createEmptyState() });
     }
+    await this.pruneInactiveMembers(roomId);
     return room;
   }
 
@@ -301,6 +332,48 @@ export class RoomManager {
   private filterActiveInvites(invites: RoomInvite[]): RoomInvite[] {
     const now = Date.now();
     return invites.filter((invite) => invite.expiresAt > now && invite.uses < invite.maxUses);
+  }
+
+  private async pruneInactiveMembers(roomId: string): Promise<void> {
+    const timeoutMs = this.config.idleTimeoutMs;
+    if (timeoutMs <= 0) {
+      return;
+    }
+    const members = this.members.get(roomId);
+    if (!members?.length) {
+      return;
+    }
+    const cutoff = Date.now() - timeoutMs;
+    const activeMembers = members.filter((member) => member.lastActiveAt >= cutoff);
+    if (activeMembers.length === members.length) {
+      return;
+    }
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return;
+    }
+    await this.ensureHostAssignment(room, activeMembers);
+    await this.storage.saveMembers(roomId, activeMembers);
+    this.members.set(roomId, activeMembers);
+    logger.info({ roomId, removedCount: members.length - activeMembers.length }, 'Pruned inactive room members');
+  }
+
+  private async ensureHostAssignment(room: Room, members: RoomMember[]): Promise<void> {
+    if (!members.length) {
+      return;
+    }
+    const currentHost = members.find((member) => member.isHost);
+    if (currentHost) {
+      return;
+    }
+    const newHost = members[0];
+    newHost.isHost = true;
+    room.hostId = newHost.id;
+    room.hostName = newHost.displayName;
+    room.updatedAt = Date.now();
+    await this.storage.saveRoom(room);
+    this.rooms.set(room.id, room);
+    logger.info({ roomId: room.id, memberId: newHost.id }, 'Promoted new host for room');
   }
 
   private generateInviteCode(): string {

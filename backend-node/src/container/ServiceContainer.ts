@@ -34,38 +34,22 @@ export class ServiceContainer {
 
   private readonly config: AppConfig;
   private readonly providers: Map<ProviderType, MusicProvider>;
-  private readonly queueManager: QueueManager;
-  private readonly playbackEngine: PlaybackEngine;
-  private readonly stateManager: StateManager;
   private readonly webSocketManager: WebSocketManager;
   private readonly streamingService: StreamingService;
   private readonly roomManager: RoomManager;
 
   private constructor() {
     this.config = loadConfig();
-    const queueStorage = this.config.queue.persistenceEnabled
-      ? new FileQueueStorage(this.config.queue.storagePath)
-      : undefined;
     const roomStorage = this.createRoomStorage();
-    this.queueManager = new QueueManager(queueStorage, this.config.queue.maxSize);
     this.providers = new Map([
       [ProviderType.YOUTUBE, new YouTubeMusicProvider(this.config.youtube.apiKey)],
     ]);
     this.webSocketManager = new WebSocketManager();
-    this.playbackEngine = new PlaybackEngine(
-      this.providers,
-      this.queueManager,
-      this.config.playback.retryAttempts,
-      this.config.playback.retryBackoffMs[0] ?? 1000,
-    );
-    this.stateManager = new StateManager(this.config.state.storagePath, this.config.state.persistenceEnabled);
     this.roomManager = RoomManager.create(this.config, roomStorage);
     this.streamingService = new StreamingService(
       this.providers,
-      this.queueManager,
-      this.playbackEngine,
-      this.stateManager,
       this.webSocketManager,
+      this.config,
     );
   }
 
@@ -81,8 +65,6 @@ export class ServiceContainer {
   }
 
   private async bootstrap(): Promise<void> {
-    await this.queueManager.init();
-    await this.stateManager.restoreState();
     await this.roomManager.init();
   }
 

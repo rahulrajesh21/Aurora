@@ -23,7 +23,7 @@ Runtime settings live in `config/app.config.json` (or environment variables). Th
 | `rooms.libsql.url` | Connection string for Turso/libSQL. Mirrors `ROOMS_LIBSQL_URL` / `TURSO_DATABASE_URL`. Required when `storageDriver=libsql`. |
 | `rooms.libsql.authToken` | Auth token issued by Turso (`ROOMS_LIBSQL_AUTH_TOKEN` or `TURSO_AUTH_TOKEN`). Optional for local dev. |
 | `rooms.maxMembers` | Hard cap on simultaneous members per room. Joining past the limit fails with `ROOM_FULL`. |
-| `rooms.idleTimeoutMs` | Planned idle eviction threshold (not yet enforced). |
+| `rooms.idleTimeoutMs` | Milliseconds of inactivity before a member is auto-removed. Heartbeats extend the timer. |
 | `rooms.invite.ttlSeconds` | Default invite lifetime in seconds. Expired invites are auto-pruned. |
 | `rooms.invite.maxPending` | Maximum active invites per room to avoid spam. |
 
@@ -58,6 +58,8 @@ npm run db:migrate
 | `POST /api/rooms` | Create a new room. Body: `{ "name": "", "hostName": "", "visibility": "PUBLIC" | "PRIVATE", "passcode": "optional" }`. |
 | `POST /api/rooms/:roomId/join` | Join a room using display name plus optional `passcode`/`inviteCode`. Returns the enrolled member object. |
 | `POST /api/rooms/:roomId/leave` | Remove a member from a room. Body: `{ "memberId": "..." }`. Promotes the next member to host if needed. |
+| `POST /api/rooms/:roomId/heartbeat` | Update a member's `lastActiveAt` timestamp so idle eviction doesn't remove them. Body: `{ "memberId": "..." }`. |
+| `DELETE /api/rooms/:roomId` | Delete a room entirely. Body: `{ "memberId": "hostMemberId" }`. Only the original creator/host can perform this action. |
 | `GET /api/rooms/:roomId/members` | Fetch the current roster for a room. |
 | `GET /api/rooms/:roomId/invites` | List active invites (expired ones are filtered). |
 | `POST /api/rooms/:roomId/invites` | Host-only endpoint to create a shareable invite. Body: `{ "requestedBy": "memberId", "maxUses": 1, "ttlSeconds": 86400 }`. |

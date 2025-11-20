@@ -3,25 +3,38 @@ import type { WebSocket } from 'ws';
 import { PlaybackState } from '../models/PlaybackState';
 
 export class WebSocketManager {
-  private readonly connections = new Map<string, WebSocket>();
+  // Map<roomId, Map<connectionId, WebSocket>>
+  private readonly rooms = new Map<string, Map<string, WebSocket>>();
 
-  addConnection(id: string, socket: WebSocket): void {
-    this.connections.set(id, socket);
+  addConnection(roomId: string, connectionId: string, socket: WebSocket): void {
+    let roomConnections = this.rooms.get(roomId);
+    if (!roomConnections) {
+      roomConnections = new Map();
+      this.rooms.set(roomId, roomConnections);
+    }
+    roomConnections.set(connectionId, socket);
   }
 
-  removeConnection(id: string): void {
-    const socket = this.connections.get(id);
-    socket?.close();
-    this.connections.delete(id);
+  removeConnection(roomId: string, connectionId: string): void {
+    const roomConnections = this.rooms.get(roomId);
+    if (roomConnections) {
+      const socket = roomConnections.get(connectionId);
+      socket?.close();
+      roomConnections.delete(connectionId);
+      if (roomConnections.size === 0) {
+        this.rooms.delete(roomId);
+      }
+    }
   }
 
-  async broadcastState(state: PlaybackState): Promise<void> {
-    if (!this.connections.size) {
+  async broadcastState(roomId: string, state: PlaybackState): Promise<void> {
+    const roomConnections = this.rooms.get(roomId);
+    if (!roomConnections || !roomConnections.size) {
       return;
     }
     const payload = JSON.stringify(state);
     const disconnected: string[] = [];
-    for (const [id, socket] of this.connections) {
+    for (const [id, socket] of roomConnections) {
       if (socket.readyState !== socket.OPEN) {
         disconnected.push(id);
         continue;
@@ -33,10 +46,17 @@ export class WebSocketManager {
         disconnected.push(id);
       }
     }
-    disconnected.forEach((id) => this.connections.delete(id));
+    disconnected.forEach((id) => roomConnections.delete(id));
   }
 
-  getConnectionCount(): number {
-    return this.connections.size;
+  getConnectionCount(roomId?: string): number {
+    if (roomId) {
+      return this.rooms.get(roomId)?.size ?? 0;
+    }
+    let total = 0;
+    for (const room of this.rooms.values()) {
+      total += room.size;
+    }
+    return total;
   }
 }
