@@ -177,6 +177,28 @@ class MediaPlaybackService : MediaSessionService() {
         }
     }
 
+    /**
+     * Stop playback and prepare service for shutdown
+     */
+    fun stopPlayback() {
+        // Stop the player
+        exoPlayer?.apply {
+            stop()
+            clearMediaItems()
+        }
+        
+        // Disconnect socket
+        playbackSocket?.disconnect()
+        currentRoomId = null
+        currentState = null
+        
+        // Stop foreground and remove notification
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        
+        // Signal service can be stopped
+        stopSelf()
+    }
+
     private suspend fun refreshPlaybackState() {
         val roomId = currentRoomId ?: return
         repository.getPlaybackState(roomId)
