@@ -1,5 +1,4 @@
 import { loadConfig, RoomStorageDriver } from '../config/appConfig';
-import { FileRoomStorage } from '../storage/FileRoomStorage';
 import { LibSQLRoomStorage } from '../storage/LibSQLRoomStorage';
 import { RoomStorage } from '../storage/RoomStorage';
 
@@ -27,7 +26,7 @@ function createStorage(config: ReturnType<typeof loadConfig>['rooms']): RoomStor
     }
     return LibSQLRoomStorage.fromOptions(config.libsql);
   }
-  return new FileRoomStorage(config.storagePath);
+  throw new Error(`Unsupported storage driver: ${config.storageDriver}. Only LibSQL is supported.`);
 }
 
 main().catch((error) => {

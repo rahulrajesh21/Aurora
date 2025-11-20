@@ -8,7 +8,6 @@ import { StreamingService } from '../services/StreamingService';
 import { StateManager } from '../services/StateManager';
 import { WebSocketManager } from '../services/WebSocketManager';
 import { MusicProvider } from '../adapters/MusicProvider';
-import { FileRoomStorage } from '../storage/FileRoomStorage';
 import { LibSQLRoomStorage } from '../storage/LibSQLRoomStorage';
 import { RoomStorage } from '../storage/RoomStorage';
 import { RoomManager } from '../services/RoomManager';
@@ -62,7 +61,7 @@ export class ServiceContainer {
       }
       return LibSQLRoomStorage.fromOptions(options);
     }
-    return new FileRoomStorage(this.config.rooms.storagePath);
+    throw new Error(`Unsupported storage driver: ${this.config.rooms.storageDriver}. Only LibSQL is supported.`);
   }
 
   private async bootstrap(): Promise<void> {
