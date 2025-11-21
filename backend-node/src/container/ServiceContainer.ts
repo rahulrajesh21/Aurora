@@ -11,6 +11,7 @@ import { MusicProvider } from '../adapters/MusicProvider';
 import { LibSQLRoomStorage } from '../storage/LibSQLRoomStorage';
 import { RoomStorage } from '../storage/RoomStorage';
 import { RoomManager } from '../services/RoomManager';
+import { LyricsService } from '../services/lyrics/LyricsService';
 
 export class ServiceContainer {
   private static instance: ServiceContainer | null = null;
@@ -36,6 +37,7 @@ export class ServiceContainer {
   private readonly webSocketManager: WebSocketManager;
   private readonly streamingService: StreamingService;
   private readonly roomManager: RoomManager;
+  private readonly lyricsService: LyricsService;
 
   private constructor() {
     this.config = loadConfig();
@@ -45,6 +47,10 @@ export class ServiceContainer {
     ]);
     this.webSocketManager = new WebSocketManager();
     this.roomManager = RoomManager.create(this.config, roomStorage);
+    this.lyricsService = new LyricsService();
+
+    this.webSocketManager.setLyricsService(this.lyricsService);
+    this.lyricsService.setWebSocketManager(this.webSocketManager);
     this.streamingService = new StreamingService(
       this.providers,
       this.webSocketManager,
@@ -82,5 +88,9 @@ export class ServiceContainer {
 
   getRoomManager(): RoomManager {
     return this.roomManager;
+  }
+
+  getLyricsService(): LyricsService {
+    return this.lyricsService;
   }
 }

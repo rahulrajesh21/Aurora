@@ -6,3 +6,7 @@ data class PlayRequestDto(
     @Json(name = "trackId") val trackId: String,
     @Json(name = "provider") val provider: String = "YOUTUBE"
 )
+
+data class PauseRequestDto(
+    @Json(name = "positionSeconds") val positionSeconds: Double?
+)

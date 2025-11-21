@@ -92,8 +92,11 @@ export class StreamingService {
     return newState;
   }
 
-  async pause(roomId: string): Promise<PlaybackState> {
+  async pause(roomId: string, positionSeconds?: number): Promise<PlaybackState> {
     const session = await this.getSession(roomId);
+    if (typeof positionSeconds === 'number') {
+      session.playbackEngine.updatePosition(positionSeconds);
+    }
     await session.playbackEngine.pause();
     const newState = session.playbackEngine.getCurrentState();
     await this.updateAndBroadcast(roomId, session, newState);

@@ -20,6 +20,36 @@ export class PlaybackEngine {
   private isPlaying = false;
   private lastUpdateTimestamp = Date.now();
 
+  private getLivePosition(): number {
+    const track = this.currentTrack;
+    if (!track) {
+      return 0;
+    }
+    if (!this.isPlaying) {
+      return Math.min(this.positionSeconds, track.durationSeconds);
+    }
+    const elapsedMs = Date.now() - this.lastUpdateTimestamp;
+    if (elapsedMs <= 0) {
+      return Math.min(this.positionSeconds, track.durationSeconds);
+    }
+    const elapsedSeconds = elapsedMs / 1000;
+    const updatedPosition = this.positionSeconds + elapsedSeconds;
+    return Math.min(updatedPosition, track.durationSeconds);
+  }
+
+  private snapshotPosition(): number {
+    const track = this.currentTrack;
+    if (!track) {
+      this.positionSeconds = 0;
+      this.lastUpdateTimestamp = Date.now();
+      return 0;
+    }
+    const livePosition = this.getLivePosition();
+    this.positionSeconds = livePosition;
+    this.lastUpdateTimestamp = Date.now();
+    return livePosition;
+  }
+
   constructor(
     private readonly providers: Map<ProviderType, MusicProvider>,
     private readonly queueManager: QueueManager,
@@ -53,8 +83,8 @@ export class PlaybackEngine {
   }
 
   async pause(): Promise<void> {
+    this.snapshotPosition();
     this.isPlaying = false;
-    this.lastUpdateTimestamp = Date.now();
   }
 
   async resume(): Promise<void> {
@@ -146,9 +176,10 @@ export class PlaybackEngine {
   }
 
   getCurrentState(): PlaybackState {
+    const positionSeconds = this.snapshotPosition();
     return {
       currentTrack: this.currentTrack,
-      positionSeconds: this.positionSeconds,
+      positionSeconds,
       isPlaying: this.isPlaying,
       queue: this.queueManager.getQueueSnapshot(),
       shuffleEnabled: this.queueManager.isShuffleEnabled(),

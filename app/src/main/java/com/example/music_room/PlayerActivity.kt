@@ -16,6 +16,16 @@ import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.utils.PermissionUtils
 import kotlinx.coroutines.launch
 import com.example.music_room.R
+import androidx.annotation.StringRes
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.music_room.data.repository.SyncedLyrics
+import com.example.music_room.ui.LyricsAdapter
+import com.example.music_room.data.manager.PlayerTelemetryManager
+import com.example.music_room.data.remote.model.LyricsResponseDto
+import com.example.music_room.data.repository.SyncedLyricLine
+import com.example.music_room.data.repository.SyncedLyricPart
 
 class PlayerActivity : AppCompatActivity() {
 
@@ -37,6 +47,13 @@ class PlayerActivity : AppCompatActivity() {
     }
     private var basePositionSeconds = 0f
     private var baseTimestamp = 0L
+
+    private val telemetryManager by lazy { PlayerTelemetryManager(playbackSocket) }
+    private val lyricsRepository = AuroraServiceLocator.lyricsRepository
+    private var currentLyricsJob: Job? = null
+    private var lastFetchedTrackId: String? = null
+    private val lyricsAdapter = LyricsAdapter()
+    private var syncedLyrics: SyncedLyrics? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,8 +78,15 @@ class PlayerActivity : AppCompatActivity() {
         binding.shuffleButton.setOnClickListener { lifecycleScope.launch { shuffleQueue() } }
         binding.repeatButton.setOnClickListener { lifecycleScope.launch { restartTrack() } }
 
+        binding.lyricsRecycler.apply {
+            layoutManager = LinearLayoutManager(this@PlayerActivity)
+            adapter = lyricsAdapter
+            itemAnimator = null
+        }
+
         binding.lyricsButton.setOnClickListener {
             binding.lyricsOverlay.isVisible = true
+            syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds, immediate = true) }
         }
         binding.closeLyricsButton.setOnClickListener {
             binding.lyricsOverlay.isVisible = false
@@ -81,7 +105,13 @@ class PlayerActivity : AppCompatActivity() {
         if (PermissionUtils.requestNotificationPermissionIfNeeded(this)) {
             startBackgroundService()
         }
-        
+
+        playbackSocket.setLyricsListener { response ->
+            runOnUiThread {
+                handleLyricsUpdate(response)
+            }
+        }
+
         playbackSocket.connect(
             onState = { state -> runOnUiThread { applyState(state) } },
             onError = { error ->
@@ -103,10 +133,14 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStop() {
         playbackSocket.disconnect()
         stopPlaybackTicker()
+        telemetryManager.detachPlayer()
         super.onStop()
     }
 
     override fun onDestroy() {
+        currentLyricsJob?.cancel()
+        currentLyricsJob = null
+        telemetryManager.detachPlayer()
         super.onDestroy()
     }
 
@@ -168,21 +202,107 @@ class PlayerActivity : AppCompatActivity() {
             binding.albumArtImage.setImageResource(R.drawable.album_placeholder)
             supportStartPostponedEnterTransition()
         }
-        binding.currentTime.text = formatTime(state.positionSeconds)
-        val duration = track?.durationSeconds ?: state.positionSeconds
+        binding.currentTime.text = formatTime(state.positionSeconds.toInt())
+        val duration = track?.durationSeconds ?: state.positionSeconds.toInt()
         binding.totalTime.text = formatTime(duration)
+        
         // Background service handles playback
+        telemetryManager.updateCurrentTrack(track)
+
         if (state.isPlaying) {
             schedulePlaybackTicker()
         } else {
             stopPlaybackTicker()
         }
+
+        syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds, immediate = false) }
+    }
+
+    private fun handleLyricsUpdate(response: LyricsResponseDto) {
+        val lines = response.lyrics.map { line ->
+            SyncedLyricLine(
+                startTimeMs = line.startTimeMs,
+                durationMs = line.durationMs,
+                words = line.words,
+                translation = line.translation?.text,
+                romanization = line.romanization,
+                parts = line.parts?.map { part ->
+                    SyncedLyricPart(
+                        startTimeMs = part.startTimeMs,
+                        durationMs = part.durationMs,
+                        words = part.words,
+                        isBackground = part.isBackground == true
+                    )
+                } ?: emptyList()
+            )
+        }
+
+        if (lines.isNotEmpty()) {
+            syncedLyrics = SyncedLyrics(
+                lines = lines,
+                sourceLabel = response.source ?: "Better Lyrics",
+                sourceUrl = response.sourceHref
+            )
+            lyricsAdapter.submitLines(lines)
+            binding.lyricsRecycler.isVisible = true
+            binding.lyricsMessage.isVisible = false
+            updateLyricsForPosition(basePositionSeconds, immediate = false)
+        } else {
+            showLyricsMessage(R.string.lyrics_not_found)
+        }
+    }
+
+    private fun fetchLyrics(title: String?, artist: String?, duration: Int, videoId: String?) {
+        if (title == null || artist == null) return
+
+        currentLyricsJob?.cancel()
+        binding.lyricsRecycler.isVisible = false
+        binding.lyricsMessage.isVisible = false
+        lyricsAdapter.clear()
+        syncedLyrics = null
+        currentLyricsJob = lifecycleScope.launch {
+            binding.lyricsLoading.isVisible = true
+            binding.lyricsMessage.isVisible = false
+
+            delay(500)
+
+            val result = lyricsRepository.getLyrics(title, artist, duration, videoId)
+
+            binding.lyricsLoading.isVisible = false
+
+            result.onSuccess { response ->
+                if (response.lines.isEmpty()) {
+                    showLyricsMessage(R.string.lyrics_not_found)
+                } else {
+                    syncedLyrics = response
+                    lyricsAdapter.submitLines(response.lines)
+                    binding.lyricsRecycler.isVisible = true
+                    binding.lyricsMessage.isVisible = false
+                    updateLyricsForPosition(basePositionSeconds, immediate = false)
+                }
+            }.onFailure {
+                showLyricsError()
+            }
+        }
+    }
+
+    private fun showLyricsMessage(@StringRes messageRes: Int) {
+        binding.lyricsMessage.text = getString(messageRes)
+        binding.lyricsMessage.isVisible = true
+        binding.lyricsRecycler.isVisible = false
+        syncedLyrics = null
+        lyricsAdapter.clear()
+    }
+
+    private fun showLyricsError() {
+        showLyricsMessage(R.string.lyrics_not_found)
     }
 
     private suspend fun togglePlayPause() {
         val id = roomId ?: return
         val result = if (currentState?.isPlaying == true) {
-            repository.pause(id)
+            val positionSeconds = resolveAccuratePlaybackPositionSeconds()
+            repository.pause(id, positionSeconds)
         } else {
             repository.resume(id)
         }
@@ -225,8 +345,6 @@ class PlayerActivity : AppCompatActivity() {
             .onFailure { showControlError(it) }
     }
 
-
-
     private fun schedulePlaybackTicker() {
         playbackTickerHandler.removeCallbacks(playbackTicker)
         if (currentState?.isPlaying == true) {
@@ -246,8 +364,30 @@ class PlayerActivity : AppCompatActivity() {
         val elapsed = basePositionSeconds + ((SystemClock.elapsedRealtime() - baseTimestamp) / 1000f)
         val clamped = elapsed.coerceAtLeast(0f)
         binding.currentTime.text = formatTime(clamped.toInt())
+        
         basePositionSeconds = clamped
         baseTimestamp = SystemClock.elapsedRealtime()
+        updateLyricsForPosition(clamped, immediate = binding.lyricsOverlay.isVisible)
+    }
+
+    private fun updateLyricsForPosition(positionSeconds: Float, immediate: Boolean) {
+        val lyrics = syncedLyrics ?: return
+        if (lyrics.lines.isEmpty()) return
+
+        val index = lyricsAdapter.updatePlaybackPosition((positionSeconds * 1000L).toLong())
+        if (index != -1 && binding.lyricsOverlay.isVisible) {
+            scrollLyricsTo(index, immediate)
+        }
+    }
+
+    private fun scrollLyricsTo(index: Int, immediate: Boolean) {
+        if (index !in 0 until lyricsAdapter.itemCount) return
+        val layoutManager = binding.lyricsRecycler.layoutManager as? LinearLayoutManager ?: return
+        if (immediate) {
+            layoutManager.scrollToPositionWithOffset(index, binding.lyricsRecycler.height / 2)
+        } else {
+            binding.lyricsRecycler.smoothScrollToPosition(index)
+        }
     }
 
     private fun showControlError(error: Throwable) {
@@ -263,6 +403,19 @@ class PlayerActivity : AppCompatActivity() {
         val minutes = safeSeconds / 60
         val remaining = safeSeconds % 60
         return String.format("%02d:%02d", minutes, remaining)
+    }
+
+    private fun resolveAccuratePlaybackPositionSeconds(): Double {
+        val state = currentState
+        if (state == null) {
+            return basePositionSeconds.toDouble()
+        }
+        if (!state.isPlaying) {
+            return basePositionSeconds.toDouble()
+        }
+        val elapsedSeconds = (SystemClock.elapsedRealtime() - baseTimestamp) / 1000f
+        val position = (basePositionSeconds + elapsedSeconds).coerceAtLeast(0f)
+        return position.toDouble()
     }
 
     companion object {

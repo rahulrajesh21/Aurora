@@ -34,10 +34,20 @@ export function registerWebSocketRoutes(server: Server, container: ServiceContai
       logger.error({ error, sessionId, roomId }, 'Failed to send initial state');
     }
 
-    socket.on('message', (message: Buffer) => {
+    socket.on('message', async (message: Buffer) => {
       const payload = message.toString();
       if (payload === 'ping') {
         socket.send('pong');
+        return;
+      }
+
+      try {
+        const data = JSON.parse(payload);
+        if (data.type === 'player_tick' && data.payload) {
+          await webSocketManager.handlePlayerTick(roomId, data.payload);
+        }
+      } catch (error) {
+        // logger.debug({ error, sessionId }, 'Failed to parse WebSocket message');
       }
     });
 

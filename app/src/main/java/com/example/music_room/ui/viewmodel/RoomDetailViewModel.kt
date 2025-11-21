@@ -202,7 +202,12 @@ class RoomDetailViewModel : ViewModel() {
         val roomId = currentRoomId ?: return
         val isPlaying = _uiState.value.playbackState?.isPlaying == true
         viewModelScope.launch {
-            val result = if (isPlaying) repository.pause(roomId) else repository.resume(roomId)
+            val result = if (isPlaying) {
+                val positionSeconds = currentAccurateSliderPositionSeconds()
+                repository.pause(roomId, positionSeconds)
+            } else {
+                repository.resume(roomId)
+            }
             result.onSuccess { state ->
                 _uiState.update { it.copy(playbackState = state) }
                 updateTickerBase(state)
@@ -326,6 +331,16 @@ class RoomDetailViewModel : ViewModel() {
     private fun updateTickerBase(state: PlaybackStateDto) {
         sliderBasePositionSeconds = state.positionSeconds.toFloat()
         sliderBaseTimestamp = SystemClock.elapsedRealtime()
+    }
+
+    private fun currentAccurateSliderPositionSeconds(): Double {
+        val playbackState = _uiState.value.playbackState
+        if (playbackState?.isPlaying != true) {
+            return sliderBasePositionSeconds.toDouble()
+        }
+        val elapsedSeconds = (SystemClock.elapsedRealtime() - sliderBaseTimestamp) / 1000f
+        val position = (sliderBasePositionSeconds + elapsedSeconds).coerceAtLeast(0f)
+        return position.toDouble()
     }
 
     companion object {

@@ -20,6 +20,7 @@ import com.example.music_room.data.remote.model.SearchResponseDto
 import com.example.music_room.data.remote.model.SeekRequestDto
 import com.example.music_room.data.remote.model.HeartbeatRequestDto
 import com.example.music_room.data.remote.model.DeleteRoomRequestDto
+import com.example.music_room.data.remote.model.PauseRequestDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -44,7 +45,7 @@ interface AuroraApi {
     suspend fun play(@Path("roomId") roomId: String, @Body body: PlayRequestDto): PlaybackStateDto
 
     @POST("api/rooms/{roomId}/playback/pause")
-    suspend fun pause(@Path("roomId") roomId: String): PlaybackStateDto
+    suspend fun pause(@Path("roomId") roomId: String, @Body body: PauseRequestDto): PlaybackStateDto
 
     @POST("api/rooms/{roomId}/playback/resume")
     suspend fun resume(@Path("roomId") roomId: String): PlaybackStateDto

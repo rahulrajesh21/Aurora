@@ -3,7 +3,9 @@ package com.example.music_room.data
 import com.example.music_room.BuildConfig
 import com.example.music_room.data.remote.AuroraApi
 import com.example.music_room.data.remote.ITunesApi
+import com.example.music_room.data.remote.LyricsApi
 import com.example.music_room.data.repository.AuroraRepository
+import com.example.music_room.data.repository.LyricsRepository
 import com.example.music_room.data.socket.PlaybackSocketClient
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -100,6 +102,14 @@ object AuroraServiceLocator {
 
     val itunesApi: ITunesApi by lazy {
         itunesRetrofit.create(ITunesApi::class.java)
+    }
+
+    private val lyricsApi: LyricsApi by lazy {
+        retrofit.create(LyricsApi::class.java)
+    }
+
+    val lyricsRepository: LyricsRepository by lazy {
+        LyricsRepository(lyricsApi)
     }
 
     private fun ensureTrailingSlash(url: String): String = if (url.endsWith('/')) url else "$url/"

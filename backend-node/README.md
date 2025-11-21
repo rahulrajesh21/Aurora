@@ -66,6 +66,54 @@ npm run db:migrate
 
 All responses follow the existing `createError` helper for error payloads. Room errors map to `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ACCESS_DENIED`, `ROOM_INVITE_ERROR`, or a generic `ROOM_ERROR`.
 
+## Lyrics API
+
+`POST /api/lyrics` mirrors the Better Lyrics extension pipeline so the frontend can render the exact same synced view the browser add-on does. The request body must provide the bits the extension normally sniffs from YouTube:
+
+```json
+{
+	"song": "Blinding Lights",
+	"artist": "The Weeknd",
+	"album": "After Hours",
+	"videoId": "fHI8X4OXluQ",
+	"durationMs": 200000,
+	"audioTrackData": { "captionTracks": [] },
+	"youtubeLyricsText": "...optional raw text...",
+	"youtubeLyricsSource": "Lyrics provided by YouTube"
+}
+```
+
+The response contains the canonical lyric structure from Better Lyrics:
+
+```jsonc
+{
+	"song": "Blinding Lights",
+	"artist": "The Weeknd",
+	"album": "After Hours",
+	"durationMs": 200000,
+	"videoId": "fHI8X4OXluQ",
+	"source": "boidu.dev",
+	"sourceHref": "https://boidu.dev/",
+	"lyrics": [
+		{
+			"startTimeMs": 12345,
+			"durationMs": 2200,
+			"words": "I've been tryna call",
+			"parts": [
+				{ "startTimeMs": 12345, "durationMs": 400, "words": "I've" },
+				{ "startTimeMs": 12745, "durationMs": 300, "words": "been" }
+			],
+			"translation": { "lang": "es", "text": "He estado intentando llamar" },
+			"romanization": "...optional..."
+		}
+	]
+}
+```
+
+Render logic: treat each `lyrics[n]` entry as a line whose clock anchor is `startTimeMs / 1000`. Highlight/scroll when the player position enters the line window, and optionally animate per-word karaoke using `parts`. If `parts` is empty, fall back to line-level syncing exactly like the extension’s `injectLyrics.ts`. Translation and romanization strings (when present) should be displayed beneath the primary line, maintaining order 1) base words, 2) romanized, 3) translated—mirroring Better Lyrics styling.
+
+Providers are tried in the same order as the extension (`bLyrics` → `Musixmatch` placeholder → `YouTube Captions` → `LRCLib`) and cached per `videoId` for one week. Pass through the caption metadata (`audioTrackData.captionTracks`) from the YouTube response if you want the automatic caption fallback to kick in.
+
 ## Next Steps
 
 - Wire each room to its own `QueueManager`/`PlaybackEngine` instance so playback is truly isolated per room.

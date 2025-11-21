@@ -1,6 +1,10 @@
 package com.example.music_room.data.socket
 
 import com.example.music_room.data.remote.model.PlaybackStateDto
+import com.example.music_room.data.remote.model.LyricsResponseDto
+import com.example.music_room.data.remote.model.PlayerTelemetryState
+import com.example.music_room.data.remote.model.PlayerTickMessage
+import com.example.music_room.data.remote.model.SocketEventMessage
 import com.squareup.moshi.Moshi
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -14,7 +18,16 @@ class PlaybackSocketClient(
     private val socketUrl: String
 ) {
     private val adapter = moshi.adapter(PlaybackStateDto::class.java)
+    private val tickAdapter = moshi.adapter(PlayerTickMessage::class.java)
+    private val eventAdapter = moshi.adapter(SocketEventMessage::class.java)
+    private val lyricsAdapter = moshi.adapter(LyricsResponseDto::class.java)
+
     private var webSocket: WebSocket? = null
+    private var onLyricsUpdate: ((LyricsResponseDto) -> Unit)? = null
+
+    fun setLyricsListener(listener: (LyricsResponseDto) -> Unit) {
+        onLyricsUpdate = listener
+    }
 
     fun connect(
         onState: (PlaybackStateDto) -> Unit,
@@ -27,6 +40,20 @@ class PlaybackSocketClient(
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
+                // Try generic event first
+                try {
+                    val event = eventAdapter.fromJson(text)
+                    if (event?.type == "lyrics:update" && event.payload != null) {
+                        val lyrics = lyricsAdapter.fromJsonValue(event.payload)
+                        if (lyrics != null) {
+                            onLyricsUpdate?.invoke(lyrics)
+                        }
+                        return
+                    }
+                } catch (e: Exception) {
+                    // Not an event or parsing failed, continue to PlaybackStateDto
+                }
+
                 runCatching {
                     adapter.fromJson(text)
                 }.onSuccess { state ->
@@ -54,6 +81,11 @@ class PlaybackSocketClient(
 
     fun sendPing() {
         webSocket?.send("ping")
+    }
+
+    fun sendPlayerTick(state: PlayerTelemetryState) {
+        val message = PlayerTickMessage(payload = state)
+        webSocket?.send(tickAdapter.toJson(message))
     }
 
     fun disconnect() {

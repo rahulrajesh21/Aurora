@@ -4,32 +4,35 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.util.Log
 import android.widget.Toast
-
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
+import com.example.music_room.R
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.RoomSessionStore
 import com.example.music_room.data.UserIdentity
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.data.remote.model.TrackDto
+import com.example.music_room.data.repository.SyncedLyrics
 import com.example.music_room.databinding.ActivityRoomDetailBinding
 import com.example.music_room.ui.AddSongBottomSheet
 import com.example.music_room.ui.JoinRoomBottomSheet
+import com.example.music_room.ui.LyricsAdapter
 import com.example.music_room.ui.QueueAdapter
 import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.utils.PermissionUtils
 import com.google.android.material.slider.Slider
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.example.music_room.R
 
 class RoomDetailActivity : AppCompatActivity() {
 
@@ -43,6 +46,12 @@ class RoomDetailActivity : AppCompatActivity() {
             // Optimistic update handled by adapter visually
         }
     )
+
+    private val lyricsRepository = AuroraServiceLocator.lyricsRepository
+    private var currentLyricsJob: Job? = null
+    private var lastLyricsTrackKey: String? = null
+    private val lyricsAdapter = LyricsAdapter()
+    private var syncedLyrics: SyncedLyrics? = null
 
     private val roomId: String by lazy { intent.getStringExtra(EXTRA_ROOM_ID).orEmpty() }
     private val roomName: String by lazy { intent.getStringExtra(EXTRA_ROOM_NAME).orEmpty() }
@@ -80,6 +89,7 @@ class RoomDetailActivity : AppCompatActivity() {
         setupSession()
         setupUI()
         setupPlaybackControls()
+        setupLyricsUi()
         setupQueueList()
         observeViewModel()
 
@@ -333,7 +343,29 @@ class RoomDetailActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupLyricsUi() {
+        binding.lyricsButton.isEnabled = false
+
+        binding.lyricsRecycler.apply {
+            layoutManager = LinearLayoutManager(this@RoomDetailActivity)
+            adapter = lyricsAdapter
+            itemAnimator = null
+        }
+
+        binding.lyricsButton.setOnClickListener {
+            if (!binding.lyricsButton.isEnabled) return@setOnClickListener
+            binding.lyricsOverlay.isVisible = true
+            updateLyricsForPosition(viewModel.sliderBasePositionSeconds, immediate = true)
+        }
+
+        binding.closeLyricsButton.setOnClickListener {
+            binding.lyricsOverlay.isVisible = false
+        }
+    }
+
     private fun applyPlaybackState(state: PlaybackStateDto) {
+        viewModel.sliderBasePositionSeconds = state.positionSeconds.toFloat()
+        viewModel.sliderBaseTimestamp = SystemClock.elapsedRealtime()
         val track = state.currentTrack
         binding.currentSongTitle.text = track?.title ?: getString(R.string.no_track_playing)
         binding.currentSongArtist.text = track?.artist ?: getString(R.string.no_track_artist)
@@ -349,15 +381,31 @@ class RoomDetailActivity : AppCompatActivity() {
             binding.albumArtImage.setImageResource(R.drawable.album_placeholder)
         }
 
-        val duration = track?.durationSeconds?.takeIf { it > 0 } ?: state.positionSeconds.coerceAtLeast(1)
+        val fallbackDuration = state.positionSeconds.toInt().coerceAtLeast(1)
+        val duration = track?.durationSeconds?.takeIf { it > 0 } ?: fallbackDuration
         binding.playbackDuration.text = formatTime(duration)
         binding.playbackSlider.isEnabled = track != null
         
         if (!sliderBeingDragged) {
             binding.playbackSlider.valueFrom = 0f
             binding.playbackSlider.valueTo = duration.coerceAtLeast(1).toFloat()
-            binding.playbackSlider.value = state.positionSeconds.coerceIn(0, duration).toFloat()
-            binding.playbackElapsed.text = formatTime(state.positionSeconds)
+            val clampedPosition = state.positionSeconds.toFloat().coerceIn(0f, duration.toFloat())
+            binding.playbackSlider.value = clampedPosition
+            binding.playbackElapsed.text = formatTime(state.positionSeconds.toInt())
+        }
+
+        val trackKey = track?.let { "${it.id}|${it.title}|${it.artist}" }
+        if (track != null && track.title.isNotBlank() && track.artist.isNotBlank()) {
+            binding.lyricsButton.isEnabled = true
+            if (trackKey != null && trackKey != lastLyricsTrackKey) {
+                lastLyricsTrackKey = trackKey
+                val targetDuration = track.durationSeconds.takeIf { it > 0 } ?: duration
+                fetchLyrics(track.title, track.artist, targetDuration, track.id)
+            }
+        } else {
+            binding.lyricsButton.isEnabled = false
+            lastLyricsTrackKey = null
+            resetLyricsContent()
         }
 
         // Background service handles playback
@@ -366,6 +414,10 @@ class RoomDetailActivity : AppCompatActivity() {
             schedulePlaybackTicker()
         } else {
             stopPlaybackTicker()
+        }
+
+        syncedLyrics?.let {
+            updateLyricsForPosition(viewModel.sliderBasePositionSeconds, immediate = false)
         }
     }
 
@@ -401,7 +453,79 @@ class RoomDetailActivity : AppCompatActivity() {
         sheet.show()
     }
 
+    private fun fetchLyrics(title: String, artist: String, durationSeconds: Int, videoId: String?) {
+        currentLyricsJob?.cancel()
+        binding.lyricsLoading.isVisible = true
+        binding.lyricsMessage.isVisible = false
+        binding.lyricsRecycler.isVisible = false
+        syncedLyrics = null
+        lyricsAdapter.clear()
 
+        currentLyricsJob = lifecycleScope.launch {
+            // Avoid flicker when switching tracks rapidly
+            delay(400)
+            val result = lyricsRepository.getLyrics(title, artist, durationSeconds, videoId)
+            binding.lyricsLoading.isVisible = false
+
+            result.onSuccess { response ->
+                if (response.lines.isEmpty()) {
+                    showLyricsMessage(R.string.lyrics_not_found)
+                } else {
+                    syncedLyrics = response
+                    lyricsAdapter.submitLines(response.lines)
+                    binding.lyricsRecycler.isVisible = true
+                    binding.lyricsMessage.isVisible = false
+                    updateLyricsForPosition(viewModel.sliderBasePositionSeconds, immediate = true)
+                }
+            }.onFailure {
+                showLyricsError()
+            }
+        }
+    }
+
+    private fun showLyricsMessage(@StringRes messageRes: Int) {
+        binding.lyricsMessage.text = getString(messageRes)
+        binding.lyricsMessage.isVisible = true
+        binding.lyricsRecycler.isVisible = false
+        syncedLyrics = null
+        lyricsAdapter.clear()
+    }
+
+    private fun showLyricsError() {
+        showLyricsMessage(R.string.lyrics_not_found)
+    }
+
+    private fun resetLyricsContent() {
+        currentLyricsJob?.cancel()
+        binding.lyricsLoading.isVisible = false
+        binding.lyricsMessage.isVisible = false
+        binding.lyricsRecycler.isVisible = false
+        syncedLyrics = null
+        lyricsAdapter.clear()
+        if (binding.lyricsOverlay.isVisible) {
+            binding.lyricsOverlay.isVisible = false
+        }
+    }
+
+    private fun updateLyricsForPosition(positionSeconds: Float, immediate: Boolean) {
+        val lyrics = syncedLyrics ?: return
+        if (lyrics.lines.isEmpty()) return
+
+        val index = lyricsAdapter.updatePlaybackPosition((positionSeconds * 1000L).toLong())
+        if (index != -1 && binding.lyricsOverlay.isVisible) {
+            scrollLyricsTo(index, immediate)
+        }
+    }
+
+    private fun scrollLyricsTo(index: Int, immediate: Boolean) {
+        if (index !in 0 until lyricsAdapter.itemCount) return
+        val layoutManager = binding.lyricsRecycler.layoutManager as? LinearLayoutManager ?: return
+        if (immediate) {
+            layoutManager.scrollToPositionWithOffset(index, binding.lyricsRecycler.height / 2)
+        } else {
+            binding.lyricsRecycler.smoothScrollToPosition(index)
+        }
+    }
 
     private fun schedulePlaybackTicker() {
         playbackTickerHandler.removeCallbacks(playbackTicker)
@@ -428,17 +552,19 @@ class RoomDetailActivity : AppCompatActivity() {
         val rounded = kotlin.math.round(clamped)
         binding.playbackSlider.value = rounded
         binding.playbackElapsed.text = formatTime(rounded.toInt())
-        
+
         viewModel.sliderBasePositionSeconds = clamped
         viewModel.sliderBaseTimestamp = SystemClock.elapsedRealtime()
+
+        updateLyricsForPosition(clamped, immediate = binding.lyricsOverlay.isVisible)
     }
 
     private fun getHighResThumbnailUrl(url: String?): String? {
         if (url == null) return null
         if (url.contains("i.ytimg.com")) {
             return url.replace("default.jpg", "sddefault.jpg")
-                .replace("mqdefault.jpg", "sddefault.jpg")
-                .replace("hqdefault.jpg", "sddefault.jpg")
+            .replace("mqdefault.jpg", "sddefault.jpg")
+            .replace("hqdefault.jpg", "sddefault.jpg")
         }
         return url
     }
@@ -472,6 +598,8 @@ class RoomDetailActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        currentLyricsJob?.cancel()
+        currentLyricsJob = null
         super.onDestroy()
     }
 

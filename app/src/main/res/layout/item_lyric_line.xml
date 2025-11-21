@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:paddingVertical="12dp"
+    android:paddingHorizontal="24dp">
+
+    <TextView
+        android:id="@+id/lyricText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:fontFamily="@font/outfit"
+        android:alpha="0.5"
+        tools:text="I said, ooh, I'm blinded by the lights" />
+
+    <TextView
+        android:id="@+id/translationText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:textColor="@color/text_tertiary"
+        android:textSize="14sp"
+        android:fontFamily="@font/outfit"
+        android:visibility="gone"
+        tools:text="He dicho uh, la luz me ciega"
+        tools:visibility="visible" />
+
+</LinearLayout>

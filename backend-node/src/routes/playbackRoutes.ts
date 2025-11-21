@@ -24,6 +24,10 @@ interface SeekRequest {
   percentage?: number;
 }
 
+interface PauseRequest {
+  positionSeconds?: number;
+}
+
 export function createPlaybackRoutes(streamingService: StreamingService): Router {
   const router = Router();
 
@@ -45,8 +49,9 @@ export function createPlaybackRoutes(streamingService: StreamingService): Router
 
   router.post('/api/rooms/:roomId/playback/pause', async (req: Request, res: Response) => {
     const { roomId } = req.params;
+    const body = req.body as PauseRequest | undefined;
     try {
-      const state = await streamingService.pause(roomId);
+      const state = await streamingService.pause(roomId, body?.positionSeconds);
       res.json(state);
     } catch (error) {
       handleGenericError(res, error, 'PAUSE_FAILED', 'Pause failed');

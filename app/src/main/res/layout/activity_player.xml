@@ -237,7 +237,9 @@
                 android:layout_marginTop="24dp"
                 app:layout_constraintTop_toBottomOf="@id/controlButtons"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_marginBottom="32dp"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -253,23 +255,31 @@
         android:clickable="true"
         android:focusable="true">
 
-        <ScrollView
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/lyricsRecycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="32dp">
+            android:clipToPadding="false"
+            android:padding="32dp"
+            android:visibility="gone"/>
 
-            <TextView
-                android:id="@+id/fullLyricsText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/lorem_ipsum_lyrics"
-                android:textColor="@color/white"
-                android:textSize="24sp"
-                android:lineSpacingExtra="8dp"
-                android:gravity="center"
-                android:fontFamily="@font/outfit"/>
+        <ProgressBar
+            android:id="@+id/lyricsLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/white"
+            android:visibility="gone"/>
 
-        </ScrollView>
+        <TextView
+            android:id="@+id/lyricsMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/lyrics_not_found"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:visibility="gone"/>
 
         <ImageView
             android:id="@+id/closeLyricsButton"

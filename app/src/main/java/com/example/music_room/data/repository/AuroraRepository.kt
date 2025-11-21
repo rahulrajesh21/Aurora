@@ -12,6 +12,7 @@ import com.example.music_room.data.remote.model.JoinRoomResponseDto
 import com.example.music_room.data.remote.model.LeaveRoomRequestDto
 import com.example.music_room.data.remote.model.PlayRequestDto
 import com.example.music_room.data.remote.model.PlaybackStateDto
+import com.example.music_room.data.remote.model.PauseRequestDto
 import com.example.music_room.data.remote.model.QueueResponseDto
 import com.example.music_room.data.remote.model.ReorderQueueRequestDto
 import com.example.music_room.data.remote.model.RoomInvitesResponseDto
@@ -46,7 +47,9 @@ class AuroraRepository(
         api.play(roomId, PlayRequestDto(trackId = trackId, provider = provider))
     }
 
-    suspend fun pause(roomId: String): Result<PlaybackStateDto> = safeCall { api.pause(roomId) }
+    suspend fun pause(roomId: String, positionSeconds: Double?): Result<PlaybackStateDto> = safeCall {
+        api.pause(roomId, PauseRequestDto(positionSeconds))
+    }
 
     suspend fun resume(roomId: String): Result<PlaybackStateDto> = safeCall { api.resume(roomId) }
 
@@ -94,7 +97,7 @@ class AuroraRepository(
                         val queue = queueResponse.queue
                         val nowPlaying = room.nowPlaying?.copy(queue = queue) ?: PlaybackStateDto(
                             currentTrack = null,
-                            positionSeconds = 0,
+                            positionSeconds = 0.0,
                             isPlaying = false,
                             queue = queue,
                             shuffleEnabled = false,
