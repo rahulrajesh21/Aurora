@@ -59,6 +59,16 @@ class MediaPlaybackService : MediaSessionService() {
         super.onCreate()
         initializePlayer()
         createNotificationChannel()
+        
+        // Start foreground immediately to prevent ANR
+        // This is required when service is started with startForegroundService()
+        startForeground(NOTIFICATION_ID, createInitialNotification())
+    }
+    
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Ensure we're in foreground mode
+        startForeground(NOTIFICATION_ID, createInitialNotification())
+        return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -94,7 +104,15 @@ class MediaPlaybackService : MediaSessionService() {
                         updateNotification()
                         
                         // Sync with backend when playback state changes locally
-                        if (isPlaying != (currentState?.isPlaying == true)) {
+                        // But avoid syncing if we are in a transient state (buffering, ended, or idle during transition)
+                        val playbackState = exoPlayer?.playbackState
+                        
+                        // Only sync if:
+                        // 1. We are playing (isPlaying = true)
+                        // 2. OR we are paused (isPlaying = false) AND it's a deliberate pause (READY state)
+                        val shouldSync = isPlaying || (playbackState == Player.STATE_READY)
+
+                        if (shouldSync && isPlaying != (currentState?.isPlaying == true)) {
                             serviceScope.launch {
                                 syncPlaybackStateWithBackend(isPlaying)
                             }
@@ -284,6 +302,25 @@ class MediaPlaybackService : MediaSessionService() {
         } catch (e: Exception) {
             android.util.Log.e("MediaService", "Failed to recover from playback error: ${e.message}")
         }
+    }
+    
+    /**
+     * Creates an initial notification for foreground service
+     * This prevents ANR when service starts before playback state is available
+     */
+    private fun createInitialNotification(): Notification {
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_music_note)
+            .setContentTitle("Aurora Music")
+            .setContentText("Connecting to room...")
+            .setContentIntent(createContentPendingIntent())
+            .setStyle(
+                androidx.media.app.NotificationCompat.MediaStyle()
+                    .setShowActionsInCompactView()
+            )
+            .setOngoing(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
     }
 
     private fun updateNotification() {

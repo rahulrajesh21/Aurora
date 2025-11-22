@@ -150,7 +150,8 @@ class PlayerActivity : AppCompatActivity() {
                 page.scaleY = scale
                 page.scaleX = scale
                 page.alpha = 0.35f + focusProgress * 0.65f
-                page.translationX = -clampedPosition * page.width * 0.18f
+                // Increased overlap factor from 0.18f to 0.25f to bring side items closer
+                page.translationX = -clampedPosition * page.width * 0.25f
             }
         }
     }
@@ -517,6 +518,9 @@ class PlayerActivity : AppCompatActivity() {
                             // We need to find its position in the real queue or use track ID if API supports it
                             // For now, we can try to skip to it if it's next, or just playTrack
                             repository.playTrack(id, track.id, track.provider)
+                            
+                            // Reset carousel to center immediately to reflect the change visually
+                            this@PlayerActivity.binding.queueCarousel.setCurrentItem(0, true)
                         }
                     }
                 }

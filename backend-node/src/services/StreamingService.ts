@@ -15,6 +15,7 @@ import { SearchResult } from '../models/SearchResult';
 import { AppConfig } from '../config/appConfig';
 import { RoomSession } from './RoomSession';
 import { RoomManager } from './RoomManager';
+import { GemmaMetadataService } from './lyrics/GemmaMetadataService';
 
 export class StreamingService {
   private readonly sessions = new Map<string, RoomSession>();
@@ -24,7 +25,7 @@ export class StreamingService {
     private readonly webSocketManager: WebSocketManager,
     private readonly config: AppConfig,
     private readonly roomManager: RoomManager,
-  ) {}
+  ) { }
 
   private async getSession(roomId: string): Promise<RoomSession> {
     let session = this.sessions.get(roomId);
@@ -77,7 +78,7 @@ export class StreamingService {
   async play(roomId: string, trackId: string, providerType: ProviderType): Promise<PlaybackState> {
     logger.info({ roomId, trackId, providerType }, 'Starting playback');
     const session = await this.getSession(roomId);
-    
+
     const provider = this.providers.get(providerType);
     if (!provider) {
       throw new ProviderError(providerType, 'Provider not available');
@@ -167,6 +168,26 @@ export class StreamingService {
     if (!track) {
       throw new TrackNotFoundError(trackId, providerType);
     }
+
+    // Normalize metadata using Gemma
+    try {
+      // We instantiate it here or inject it. Since it was used directly in LyricsService, we'll do the same for now.
+      // Ideally this should be injected.
+      const metadataService = new GemmaMetadataService();
+      const normalized = await metadataService.normalizeMetadata({
+        song: track.title,
+        artist: track.artist,
+      });
+
+      if (normalized) {
+        logger.info({ original: track.title, normalized }, 'Normalized track metadata');
+        track.title = normalized.song;
+        track.artist = normalized.artist;
+      }
+    } catch (error) {
+      logger.warn({ error }, 'Failed to normalize metadata, using original');
+    }
+
     await session.queueManager.addTrack(track, 'user');
     const state = session.playbackEngine.getCurrentState();
     await this.updateAndBroadcast(roomId, session, state);

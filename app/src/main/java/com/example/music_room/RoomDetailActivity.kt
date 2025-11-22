@@ -58,6 +58,8 @@ class RoomDetailActivity : AppCompatActivity() {
     private var lastPrefetchedNextTrackId: String? = null
     
     private val carouselAdapter = CarouselAdapter()
+    private var carouselPageChangeCallback: ViewPager2.OnPageChangeCallback? = null
+    private var lastSyncedTrackId: String? = null
 
     private val roomId: String by lazy { intent.getStringExtra(EXTRA_ROOM_ID).orEmpty() }
     private val roomName: String by lazy { intent.getStringExtra(EXTRA_ROOM_NAME).orEmpty() }
@@ -163,27 +165,45 @@ class RoomDetailActivity : AppCompatActivity() {
             clipToPadding = false
             clipChildren = false
             offscreenPageLimit = 3
-            setPadding(100, 0, 100, 0)
+            // Keep centered while allowing a slight peek on both sides
+            setPadding(80, 0, 80, 0)
 
             val transformer = CompositePageTransformer()
-            transformer.addTransformer(MarginPageTransformer(40))
+            transformer.addTransformer(MarginPageTransformer(16))
             transformer.addTransformer { page, position ->
                 val r = 1 - abs(position)
-                page.scaleY = 0.85f + r * 0.15f
+                page.scaleY = 0.75f + r * 0.25f
+                page.scaleX = 0.75f + r * 0.25f
                 page.alpha = 0.5f + r * 0.5f
+                page.translationX = position * -80f
             }
             setPageTransformer(transformer)
-            
-            registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+
+            carouselPageChangeCallback = object : ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) {
                     super.onPageSelected(position)
-                    if (position == 1) {
-                        // User swiped to next
-                        viewModel.skipTrack()
-                    }
+                    updateDisplayedTrackFromCarousel(position)
                 }
-            })
+            }.also { callback ->
+                registerOnPageChangeCallback(callback)
+            }
         }
+
+        binding.nextTrackTapTarget.setOnClickListener {
+            viewModel.skipTrack()
+        }
+    }
+
+    private fun updateDisplayedTrackFromCarousel(position: Int) {
+        val track = carouselAdapter.getTrack(position)
+        updateDisplayedTrack(track)
+    }
+
+    private fun updateDisplayedTrack(track: TrackDto?) {
+        val title = track?.title?.takeIf { it.isNotBlank() } ?: getString(R.string.no_track_playing)
+        val artist = track?.artist?.takeIf { it.isNotBlank() } ?: getString(R.string.no_track_artist)
+        binding.currentSongTitle.text = title
+        binding.currentSongArtist.text = artist
     }
 
     private fun setupLyricsUi() {
@@ -209,7 +229,28 @@ class RoomDetailActivity : AppCompatActivity() {
                     state.playbackState?.currentTrack?.let { items.add(it) }
                     items.addAll(state.queue)
                     carouselAdapter.submitList(items)
-                    binding.queueCarousel.setCurrentItem(0, false)
+                    val currentTrackId = state.playbackState?.currentTrack?.id
+                    val shouldRecentre = when {
+                        currentTrackId == null && lastSyncedTrackId != null -> true
+                        currentTrackId != null && currentTrackId != lastSyncedTrackId -> true
+                        else -> false
+                    }
+                    lastSyncedTrackId = currentTrackId
+
+                    val hasItems = items.isNotEmpty()
+                    val lastIndex = if (hasItems) items.lastIndex else -1
+
+                    if (shouldRecentre && hasItems) {
+                        binding.queueCarousel.post {
+                            binding.queueCarousel.setCurrentItem(0, false)
+                            updateDisplayedTrackFromCarousel(0)
+                        }
+                    } else if (hasItems) {
+                        val targetPosition = binding.queueCarousel.currentItem.coerceIn(0, lastIndex)
+                        updateDisplayedTrackFromCarousel(targetPosition)
+                    } else {
+                        updateDisplayedTrack(null)
+                    }
 
                     if (state.error != null) {
                         Toast.makeText(this@RoomDetailActivity, state.error, Toast.LENGTH_SHORT).show()
@@ -225,9 +266,12 @@ class RoomDetailActivity : AppCompatActivity() {
         viewModel.sliderBaseTimestamp = SystemClock.elapsedRealtime()
         val track = state.currentTrack
         val displayArtist = track?.artist.orEmpty()
-    binding.currentSongTitle.text = track?.title ?: getString(R.string.no_track_playing)
-        binding.currentSongArtist.text = displayArtist.takeIf { it.isNotBlank() }
-            ?: getString(R.string.no_track_artist)
+
+        if (binding.queueCarousel.currentItem == 0) {
+            binding.currentSongTitle.text = track?.title ?: getString(R.string.no_track_playing)
+            binding.currentSongArtist.text = displayArtist.takeIf { it.isNotBlank() }
+                ?: getString(R.string.no_track_artist)
+        }
         
         val fallbackDuration = state.positionSeconds.toInt().coerceAtLeast(1)
         val duration = track?.durationSeconds?.takeIf { it > 0 } ?: fallbackDuration
@@ -342,6 +386,9 @@ class RoomDetailActivity : AppCompatActivity() {
     }
 
     private fun applyNormalizedMetadata(response: SyncedLyrics) {
+        if (binding.queueCarousel.currentItem != 0) {
+            return
+        }
         response.normalizedSong?.takeIf { it.isNotBlank() }?.let {
             binding.currentSongTitle.text = it
         }
@@ -583,6 +630,8 @@ class RoomDetailActivity : AppCompatActivity() {
         audioPrefetchJob?.cancel()
         prefetchedLyrics.clear()
         prefetchedAudioIds.clear()
+        carouselPageChangeCallback?.let { binding.queueCarousel.unregisterOnPageChangeCallback(it) }
+        carouselPageChangeCallback = null
         super.onDestroy()
     }
 
@@ -600,6 +649,8 @@ class RoomDetailActivity : AppCompatActivity() {
             items = newItems
             notifyDataSetChanged()
         }
+
+        fun getTrack(position: Int): TrackDto? = items.getOrNull(position)
 
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): ViewHolder {
             val binding = ItemQueueCarouselBinding.inflate(android.view.LayoutInflater.from(parent.context), parent, false)
@@ -621,8 +672,6 @@ class RoomDetailActivity : AppCompatActivity() {
                 binding.root.setOnClickListener {
                     if (position == 0) {
                         viewModel.togglePlayPause()
-                    } else {
-                        viewModel.skipTrack()
                     }
                 }
             }
