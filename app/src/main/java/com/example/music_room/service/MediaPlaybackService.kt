@@ -20,8 +20,6 @@ import com.example.music_room.MainActivity
 import com.example.music_room.R
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.remote.model.PlaybackStateDto
-import com.example.music_room.utils.displayTitle
-import com.example.music_room.utils.sanitizeArtistLabel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -287,9 +285,9 @@ class MediaPlaybackService : MediaSessionService() {
 
     private fun updateNotification() {
         val state = currentState ?: return
-    val track = state.currentTrack
-    val artistLabel = track?.artist?.sanitizeArtistLabel()?.takeIf { it.isNotBlank() } ?: track?.artist
-    val titleLabel = track?.displayTitle() ?: "Aurora Music"
+        val track = state.currentTrack
+        val artistLabel = track?.artist?.takeIf { it.isNotBlank() } ?: track?.artist
+        val titleLabel = track?.title ?: "Aurora Music"
         
         val playPauseAction = if (state.isPlaying) {
             NotificationCompat.Action.Builder(

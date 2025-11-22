@@ -1,66 +1,88 @@
 package com.example.music_room.data.repository
 
-import com.example.music_room.data.remote.model.LyricsResponse
+import com.example.music_room.data.remote.model.LyricLineDto
+import com.example.music_room.data.remote.model.LyricPartDto
+import com.example.music_room.data.remote.model.LyricsResponseDto
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LyricsRepositoryTest {
 
     @Test
-    fun sanitizeArtistName_removesTopicSuffix() {
-        val result = LyricsRepository.sanitizeArtistName("dudeontheguitar - Topic")
-        assertEquals("dudeontheguitar", result)
-    }
-
-    @Test
-    fun sanitizeTrackName_stripsNoiseWords() {
-        val result = LyricsRepository.sanitizeTrackName("bet (Official Lyric Video)")
-        assertEquals("bet", result)
-    }
-
-    @Test
-    fun sanitizeTrackName_removesArtistPrefixWithHyphen() {
-        val result = LyricsRepository.sanitizeTrackName("Sleep Token - Caramel", "Sleep Token")
-        assertEquals("Caramel", result)
-    }
-
-    @Test
-    fun sanitizeTrackName_keepsTitleWhenArtistDoesNotMatch() {
-        val result = LyricsRepository.sanitizeTrackName("Random Upload - Caramel", "Sleep Token")
-        assertEquals("Random Upload - Caramel", result)
-    }
-
-    @Test
-    fun selectBestMatch_prefersClosestDuration() {
-        val responses = listOf(
-            response(id = 1, duration = 200.0),
-            response(id = 2, duration = 260.5),
-            response(id = 3, duration = 100.0)
+    fun toSyncedLyrics_returnsNull_whenBackendSignalsNoLyrics() {
+        val dto = LyricsResponseDto(
+            song = "Test",
+            artist = "Artist",
+            album = null,
+            durationMs = 120_000,
+            videoId = "vid",
+            source = "Better Lyrics",
+            sourceHref = null,
+            lyrics = listOf(
+                LyricLineDto(
+                    startTimeMs = 0,
+                    durationMs = 0,
+                    words = "No lyrics found for this song",
+                    parts = emptyList(),
+                    translation = null
+                )
+            )
         )
 
-        val selected = LyricsRepository.selectBestMatch(responses, durationSeconds = 262)
+        val mapped = dto.toSyncedLyrics()
 
-        assertEquals(2, selected?.id)
+        assertNull(mapped)
     }
 
     @Test
-    fun selectBestMatch_fallsBackWhenOnlyRemixAvailable() {
-        val responses = listOf(
-            response(id = 10, duration = 248.0)
+    fun toSyncedLyrics_detectsRichSync_whenWordPartsHaveDurations() {
+        val dto = LyricsResponseDto(
+            song = "Test",
+            artist = "Artist",
+            album = null,
+            durationMs = 120_000,
+            videoId = "vid",
+            source = "Better Lyrics",
+            sourceHref = null,
+            lyrics = listOf(
+                LyricLineDto(
+                    startTimeMs = 1000,
+                    durationMs = 2000,
+                    words = "Hello world",
+                    parts = listOf(
+                        LyricPartDto(startTimeMs = 1000, durationMs = 500, words = "Hello", isBackground = false),
+                        LyricPartDto(startTimeMs = 1500, durationMs = 500, words = "world", isBackground = false)
+                    ),
+                    translation = null
+                )
+            )
         )
 
-        val selected = LyricsRepository.selectBestMatch(responses, durationSeconds = 262)
+        val mapped = dto.toSyncedLyrics()
 
-        assertEquals(10, selected?.id)
+        assertNotNull(mapped)
+        assertEquals(SyncType.RICH_SYNC, mapped?.syncType)
+        assertEquals(1, mapped?.lines?.size)
+        assertEquals("Hello world", mapped?.lines?.first()?.words)
     }
 
-    private fun response(id: Int, duration: Double?): LyricsResponse {
-        return LyricsResponse(
-            id = id,
-            plainLyrics = null,
-            syncedLyrics = null,
-            instrumental = false,
-            duration = duration
+    @Test
+    fun determineSyncType_returnsLineSync_whenOnlyLineTimingExists() {
+        val lines = listOf(
+            SyncedLyricLine(
+                startTimeMs = 1000,
+                durationMs = 2000,
+                words = "Only line timing",
+                translation = null,
+                romanization = null,
+                parts = emptyList()
+            )
         )
+
+        val type = determineSyncType(lines)
+
+        assertEquals(SyncType.LINE_SYNC, type)
     }
 }

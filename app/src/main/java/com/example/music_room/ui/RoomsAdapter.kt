@@ -9,8 +9,6 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.example.music_room.R
 import com.example.music_room.data.remote.model.RoomSnapshotDto
-import com.example.music_room.utils.displayArtist
-import com.example.music_room.utils.displayTitle
 
 class RoomsAdapter(
     private val onRoomSelected: (RoomSnapshotDto) -> Unit
@@ -50,9 +48,8 @@ class RoomsAdapter(
             val playingTrack = snapshot.nowPlaying?.currentTrack ?: snapshot.nowPlaying?.queue?.firstOrNull()
             
             if (playingTrack != null) {
-                songTitle.text = playingTrack.displayTitle()
-                val artistLabel = playingTrack.displayArtist().ifBlank { playingTrack.artist }
-                artistName.text = artistLabel
+                songTitle.text = playingTrack.title
+                artistName.text = playingTrack.artist
                 songTitle.visibility = View.VISIBLE
                 artistName.visibility = View.VISIBLE
             } else {

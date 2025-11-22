@@ -5,12 +5,11 @@ import { loadBlyricsLineSync, loadBlyricsRichSync, type BLyricsResult } from './
 import { loadLrclibPlain, loadLrclibSynced, type LrclibResult } from './providers/lrclibProvider';
 import { loadYoutubeCaptions } from './providers/ytCaptionsProvider';
 import { loadYoutubeLyrics } from './providers/ytLyricsProvider';
-import { loadMusixmatchRichSync } from './providers/MusixmatchRichSyncProvider';
-import { loadCubeyLyrics } from './providers/CubeyProvider';
 import type { WebSocketManager } from '../WebSocketManager';
 import { calculateSimilarity } from './lrcUtils';
 import { PlayerTelemetryState } from '../../models/PlayerTelemetryState';
 import { SegmentMapService } from './SegmentMapService';
+import { GemmaMetadataService } from './GemmaMetadataService';
 
 interface CacheEntry {
   version: string;
@@ -27,6 +26,7 @@ export class LyricsService {
   private cache = new Map<string, CacheEntry>();
   private webSocketManager: WebSocketManager | null = null;
   private segmentMapService = new SegmentMapService();
+  private metadataService = new GemmaMetadataService();
 
   constructor(private readonly requestTimeoutMs = 10000) { }
 
@@ -46,8 +46,6 @@ export class LyricsService {
     };
 
     try {
-      // TODO: Implement specific createLyrics logic without cache as per plan
-      // For now using getLyrics to test the flow
       // Check for segment map if it's a music video
       const segmentMap = await this.segmentMapService.getSegmentMap(state.trackId);
       if (segmentMap && segmentMap.counterpartVideoId) {
@@ -70,6 +68,8 @@ export class LyricsService {
       throw new Error('Song and artist are required for lyrics lookup');
     }
 
+    const providerRequest: LyricsRequest = { ...request };
+
     // Cache removed as per Better Lyrics Parity Plan
     // const cacheKey = `lyrics:${request.videoId}`;
     // const cached = this.cache.get(cacheKey);
@@ -82,17 +82,31 @@ export class LyricsService {
       lrclib: new Map(),
     };
 
+    if (segmentMap?.counterpartVideoId) {
+      providerRequest.videoId = segmentMap.counterpartVideoId;
+    }
+
+    const normalizedMetadata = await this.metadataService.normalizeMetadata({
+      song: providerRequest.song,
+      artist: providerRequest.artist,
+    });
+
+    if (normalizedMetadata) {
+      providerRequest.song = normalizedMetadata.song;
+      providerRequest.artist = normalizedMetadata.artist;
+    }
+
     let selected: LyricSourceResult | null = null;
 
     for (const provider of PROVIDER_PRIORITY) {
-      const result = await this.runProvider(provider, request, sharedState);
+      const result = await this.runProvider(provider, providerRequest, sharedState);
       if (result && result.lyrics && result.lyrics.length > 0) {
         // Validation: Check against YouTube official lyrics if available
-        if (request.youtubeLyricsText) {
+        if (providerRequest.youtubeLyricsText) {
           const providerText = result.lyrics.map(l => l.words).join(' ');
-          const similarity = calculateSimilarity(providerText, request.youtubeLyricsText);
+          const similarity = calculateSimilarity(providerText, providerRequest.youtubeLyricsText);
           if (similarity < 0.5) {
-            logger.warn({ provider, similarity, song: request.song }, 'Lyrics rejected due to low similarity with official lyrics');
+            logger.warn({ provider, similarity, song: providerRequest.song }, 'Lyrics rejected due to low similarity with official lyrics');
             continue;
           }
         }
@@ -124,11 +138,11 @@ export class LyricsService {
 
     const response: LyricsResponse = {
       ...selected,
-      song: request.song,
-      artist: request.artist,
-      album: request.album,
-      durationMs: request.durationMs,
-      videoId: request.videoId,
+      song: providerRequest.song,
+      artist: providerRequest.artist,
+      album: providerRequest.album,
+      durationMs: providerRequest.durationMs,
+      videoId: providerRequest.videoId,
       segmentMap,
     };
 
@@ -164,10 +178,6 @@ export class LyricsService {
         return loadYoutubeCaptions(request, signal);
       case 'yt-lyrics':
         return loadYoutubeLyrics(request);
-      case 'musixmatch-richsync':
-        return loadCubeyLyrics(request, signal, 'richsync');
-      case 'musixmatch-synced':
-        return loadCubeyLyrics(request, signal, 'synced');
       default:
         return null;
     }

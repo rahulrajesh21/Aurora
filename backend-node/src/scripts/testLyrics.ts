@@ -1,9 +1,9 @@
-import { loadCubeyLyrics } from '../services/lyrics/providers/CubeyProvider';
+import { LyricsService } from '../services/lyrics/LyricsService';
 import { logger } from '../utils/logger';
 import { LyricsRequest } from '../services/lyrics/types';
 
 async function testLyricsService() {
-    logger.info('Testing CubeyProvider directly...');
+    logger.info('Testing Better Lyrics provider stack via LyricsService...');
 
     const request: LyricsRequest = {
         song: 'Thriller',
@@ -14,17 +14,14 @@ async function testLyricsService() {
     };
 
     try {
-        const result = await loadCubeyLyrics(request, AbortSignal.timeout(10000), 'richsync');
+        const service = new LyricsService();
+        const result = await service.getLyrics(request);
 
-        if (result) {
-            logger.info({
-                source: result.source,
-                lyricCount: result.lyrics?.length,
-                firstLine: result.lyrics?.[0]?.words
-            }, 'CubeyProvider Result');
-        } else {
-            logger.warn('CubeyProvider returned null (likely due to auth or no lyrics)');
-        }
+        logger.info({
+            source: result.source,
+            lyricCount: result.lyrics?.length,
+            firstLine: result.lyrics?.[0]?.words
+        }, 'LyricsService Result');
 
     } catch (error) {
         logger.error({ error }, 'Error fetching lyrics');

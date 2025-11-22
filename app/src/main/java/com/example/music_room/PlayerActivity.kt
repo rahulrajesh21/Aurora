@@ -20,17 +20,13 @@ import com.example.music_room.data.manager.PlayerTelemetryManager
 import com.example.music_room.data.remote.model.LyricsResponseDto
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.data.remote.model.TrackDto
-import com.example.music_room.data.repository.SyncedLyricLine
-import com.example.music_room.data.repository.SyncedLyricPart
 import com.example.music_room.data.repository.SyncedLyrics
+import com.example.music_room.data.repository.toSyncedLyrics
 import com.example.music_room.databinding.ActivityPlayerBinding
 import com.example.music_room.databinding.ItemQueueCarouselBinding
 import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.ui.LyricsAdapter
 import com.example.music_room.utils.PermissionUtils
-import com.example.music_room.utils.displayArtist
-import com.example.music_room.utils.displayTitle
-import com.example.music_room.utils.sanitizeArtistLabel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -134,9 +130,9 @@ class PlayerActivity : AppCompatActivity() {
                     val adapter = adapter as? QueueAdapter ?: return
                     val track = adapter.getItem(position) ?: return
                     
-                    binding.songTitle.text = track.displayTitle()
-                    val displayArtist = track.displayArtist()
-                    binding.artistName.text = displayArtist.takeIf { it.isNotBlank() }
+                    binding.songTitle.text = track.title
+                    val displayArtist = track.artist
+                    binding.artistName.text = displayArtist.takeIf { !it.isNullOrBlank() }
                         ?: getString(R.string.no_track_artist)
                 }
             })
@@ -260,13 +256,12 @@ class PlayerActivity : AppCompatActivity() {
         basePositionSeconds = state.positionSeconds.toFloat()
         baseTimestamp = SystemClock.elapsedRealtime()
         
-       val track = state.currentTrack
-       val sanitizedArtist = track?.artist?.sanitizeArtistLabel()?.takeIf { it.isNotBlank() }
-       val artistForDisplay = sanitizedArtist ?: track?.artist?.takeIf { it.isNotBlank() }
+    val track = state.currentTrack
+    val artistForDisplay = track?.artist?.takeIf { it.isNotBlank() }
         
         // Only update text if we are NOT browsing (or if it's the first load)
         if (binding.queueCarousel.currentItem == 0) {
-             binding.songTitle.text = track?.displayTitle() ?: getString(R.string.no_track_playing)
+                         binding.songTitle.text = track?.title ?: getString(R.string.no_track_playing)
            binding.artistName.text = artistForDisplay ?: getString(R.string.no_track_artist)
         }
         
@@ -306,8 +301,8 @@ class PlayerActivity : AppCompatActivity() {
     syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds) }
         
         // Fetch lyrics if changed
-        val artistForLyrics = artistForDisplay
-        if (track?.id != null && track.id != lastFetchedTrackId && !artistForLyrics.isNullOrBlank()) {
+    val artistForLyrics = artistForDisplay
+    if (track?.id != null && track.id != lastFetchedTrackId && !artistForLyrics.isNullOrBlank()) {
             lastFetchedTrackId = track.id
             fetchLyrics(track.title, artistForLyrics, track.durationSeconds, track.id)
             
@@ -328,8 +323,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun updateTheme(url: String?) {
         PaletteThemeHelper.applyFromAlbumArt(this, url) { background, accent ->
-            val textColor = ensureReadableTextColor(accent, background)
-            applyLyricTheme(background, textColor)
+            applyLyricTheme(background, accent)
         }
     }
 
@@ -352,60 +346,45 @@ class PlayerActivity : AppCompatActivity() {
         return ColorUtils.setAlphaComponent(color, alpha)
     }
 
-    private fun ensureReadableTextColor(candidate: Int, background: Int): Int {
-        val contrast = ColorUtils.calculateContrast(candidate, background)
-        return if (contrast < 2f) {
-            if (isColorDark(background)) Color.WHITE else Color.BLACK
-        } else {
-            candidate
-        }
-    }
-
-    private fun isColorDark(color: Int): Boolean {
-        return ColorUtils.calculateLuminance(color) < 0.5
-    }
-
+    /**
+     * Handle lyrics update from WebSocket (Better Lyrics format)
+     */
     private fun handleLyricsUpdate(response: LyricsResponseDto) {
-        val lines = response.lyrics.map { line ->
-            SyncedLyricLine(
-                startTimeMs = line.startTimeMs,
-                durationMs = line.durationMs,
-                words = line.words,
-                translation = line.translation?.text,
-                romanization = line.romanization,
-                parts = line.parts?.map { part ->
-                    SyncedLyricPart(
-                        startTimeMs = part.startTimeMs,
-                        durationMs = part.durationMs,
-                        words = part.words,
-                        isBackground = part.isBackground == true
-                    )
-                } ?: emptyList()
-            )
-        }
+        val synced = response.toSyncedLyrics() ?: return
 
-        if (lines.isNotEmpty()) {
-            syncedLyrics = SyncedLyrics(lines = lines, sourceLabel = response.source ?: "Better Lyrics", sourceUrl = response.sourceHref)
-            lyricsAdapter.submitLines(lines)
-            binding.lyricsRecyclerView.isVisible = true
-            updateLyricsForPosition(basePositionSeconds)
-        }
+        syncedLyrics = synced
+        lyricsAdapter.submitLines(synced.lines, synced.syncType)
+        binding.lyricsRecyclerView.isVisible = true
+        updateLyricsForPosition(basePositionSeconds)
     }
 
+    /**
+     * Fetch lyrics using Better Lyrics approach
+     * - Minimal name cleaning (handled in repository)
+     * - Direct pass-through to backend
+     * - Support for all sync types
+     */
     private fun fetchLyrics(title: String?, artist: String?, duration: Int, videoId: String?) {
         if (title == null || artist == null) return
+        
         currentLyricsJob?.cancel()
         lyricsAdapter.clear()
         syncedLyrics = null
+        
         currentLyricsJob = lifecycleScope.launch {
             val result = lyricsRepository.getLyrics(title, artist, duration, videoId)
+            
             result.onSuccess { response ->
                 if (response.lines.isNotEmpty()) {
                     syncedLyrics = response
-                    lyricsAdapter.submitLines(response.lines)
+                    // Pass sync type to adapter (Better Lyrics style)
+                    lyricsAdapter.submitLines(response.lines, response.syncType)
                     binding.lyricsRecyclerView.isVisible = true
                     updateLyricsForPosition(basePositionSeconds)
                 }
+            }.onFailure { error ->
+                // Show error message if lyrics fetch fails
+                android.util.Log.w("PlayerActivity", "Lyrics fetch failed: ${error.message}")
             }
         }
     }

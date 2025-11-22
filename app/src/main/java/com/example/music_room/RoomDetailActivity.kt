@@ -25,6 +25,7 @@ import com.example.music_room.data.UserIdentity
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.data.remote.model.TrackDto
 import com.example.music_room.data.repository.SyncedLyrics
+import com.example.music_room.data.repository.SyncType
 import com.example.music_room.databinding.ActivityRoomDetailBinding
 import com.example.music_room.databinding.ItemQueueCarouselBinding
 import com.example.music_room.ui.AddSongBottomSheet
@@ -32,11 +33,8 @@ import com.example.music_room.ui.JoinRoomBottomSheet
 import com.example.music_room.ui.LyricsAdapter
 import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.utils.PermissionUtils
-import com.example.music_room.utils.displayTitle
-import com.example.music_room.utils.sanitizeArtistLabel
 import com.google.android.material.slider.Slider
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -218,8 +216,8 @@ class RoomDetailActivity : AppCompatActivity() {
         viewModel.sliderBasePositionSeconds = state.positionSeconds.toFloat()
         viewModel.sliderBaseTimestamp = SystemClock.elapsedRealtime()
         val track = state.currentTrack
-        val displayArtist = track?.artist?.sanitizeArtistLabel().orEmpty()
-    binding.currentSongTitle.text = track?.displayTitle() ?: getString(R.string.no_track_playing)
+        val displayArtist = track?.artist.orEmpty()
+    binding.currentSongTitle.text = track?.title ?: getString(R.string.no_track_playing)
         binding.currentSongArtist.text = displayArtist.takeIf { it.isNotBlank() }
             ?: getString(R.string.no_track_artist)
         
@@ -236,7 +234,7 @@ class RoomDetailActivity : AppCompatActivity() {
             binding.playbackElapsed.text = formatTime(state.positionSeconds.toInt())
         }
 
-        val normalizedArtist = displayArtist.takeIf { it.isNotBlank() }
+    val normalizedArtist = displayArtist.takeIf { it.isNotBlank() }
         val trackKey = track?.let { "${it.id}|${it.title}|${normalizedArtist ?: it.artist}" }
         if (track != null && track.title.isNotBlank() && !normalizedArtist.isNullOrBlank()) {
             if (trackKey != null && trackKey != lastLyricsTrackKey) {
@@ -260,6 +258,11 @@ class RoomDetailActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Fetch lyrics using Better Lyrics approach
+     * - Minimal name cleaning (handled in repository)
+     * - Direct pass-through to backend with provider fallback
+     */
     private fun fetchLyrics(title: String, artist: String, durationSeconds: Int, videoId: String?) {
         currentLyricsJob?.cancel()
         binding.lyricsLoading.isVisible = true
@@ -269,7 +272,6 @@ class RoomDetailActivity : AppCompatActivity() {
         lyricsAdapter.clear()
 
         currentLyricsJob = lifecycleScope.launch {
-            delay(400)
             val result = lyricsRepository.getLyrics(title, artist, durationSeconds, videoId)
             binding.lyricsLoading.isVisible = false
 
@@ -278,12 +280,14 @@ class RoomDetailActivity : AppCompatActivity() {
                     showLyricsMessage(R.string.lyrics_not_found)
                 } else {
                     syncedLyrics = response
-                    lyricsAdapter.submitLines(response.lines)
+                    // Pass sync type to adapter (Better Lyrics style)
+                    lyricsAdapter.submitLines(response.lines, response.syncType)
                     binding.lyricsRecycler.isVisible = true
                     binding.lyricsMessage.isVisible = false
                     updateLyricsForPosition(viewModel.sliderBasePositionSeconds, immediate = true)
                 }
-            }.onFailure {
+            }.onFailure { error ->
+                android.util.Log.w("RoomDetailActivity", "Lyrics fetch failed: ${error.message}")
                 showLyricsError()
             }
         }

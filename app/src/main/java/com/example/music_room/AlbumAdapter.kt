@@ -7,7 +7,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import com.example.music_room.utils.sanitizeArtistLabel
 
 class AlbumAdapter(
     private val onAlbumClick: (Album, ImageView) -> Unit
@@ -42,9 +41,8 @@ class AlbumAdapter(
         } else {
             holder.albumImage.setImageResource(R.drawable.album_placeholder)
         }
-    holder.albumTitle.text = album.title
-    val artistLabel = album.artist.sanitizeArtistLabel().ifBlank { album.artist }
-    holder.albumArtist.text = artistLabel
+        holder.albumTitle.text = album.title
+        holder.albumArtist.text = album.artist
         
         // Click listener for entire card
         holder.itemView.setOnClickListener {

@@ -9,8 +9,6 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.example.music_room.R
 import com.example.music_room.data.remote.model.TrackDto
-import com.example.music_room.utils.displayArtist
-import com.example.music_room.utils.displayTitle
 
 class QueueAdapter(
     private val onVote: (position: Int) -> Unit,
@@ -65,9 +63,8 @@ class QueueAdapter(
         val voteButton: View = view.findViewById(R.id.voteButton)
 
         fun bind(track: TrackDto, position: Int) {
-            songTitle.text = track.displayTitle()
-            val artistLabel = track.displayArtist().ifBlank { track.artist }
-            songArtist.text = artistLabel
+            songTitle.text = track.title
+            songArtist.text = track.artist
             voteCount.text = (position + 1).toString()
             if (!track.thumbnailUrl.isNullOrBlank()) {
                 songImage.load(track.thumbnailUrl) {

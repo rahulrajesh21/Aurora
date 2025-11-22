@@ -29,6 +29,16 @@ Runtime settings live in `config/app.config.json` (or environment variables). Th
 
 Remember to set `YOUTUBE_API_KEY` in your environment or the config file before starting the server.
 
+### Lyrics metadata normalization
+
+To improve lyric lookups we now pre-process noisy video titles through OpenRouter's Gemma 3 12B instruction-tuned model. Set the API key before starting the server:
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+When the key is present the backend will call OpenRouter for each new song title and use the normalized `{ "artist name": "...", "song title": "..." }` output when querying Better Lyrics/LRCLib. If the variable is omitted the service quietly falls back to the original metadata coming from the client.
+
 ### Migrating rooms to Turso/libSQL
 
 1. Provision a Turso database (`turso db create aurora-rooms`) and grab `TURSO_DATABASE_URL` plus `TURSO_AUTH_TOKEN`.

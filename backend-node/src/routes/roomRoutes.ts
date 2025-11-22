@@ -8,6 +8,7 @@ import { createError } from './types';
 interface CreateRoomRequest {
   name?: string;
   hostName?: string;
+  description?: string;
   visibility?: RoomVisibility;
   passcode?: string;
 }

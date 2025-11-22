@@ -1,18 +1,32 @@
 package com.example.music_room.data.repository
 
 import com.example.music_room.data.remote.LyricsApi
-import com.example.music_room.data.remote.model.LyricLineDto
-import com.example.music_room.data.remote.model.LyricPartDto
 import com.example.music_room.data.remote.model.LyricsRequestDto
-import com.example.music_room.data.remote.model.LyricsResponseDto
-import com.example.music_room.utils.ArtistNameFormatter
-import com.example.music_room.utils.TrackTitleFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * LyricsRepository - Better Lyrics Parity Implementation
+ * 
+ * This implementation mirrors the Better Lyrics browser extension exactly:
+ * - Minimal song/artist name cleaning (only trim and ", & " replacement)
+ * - Direct pass-through to backend (which handles provider fallback)
+ * - Support for rich-sync (word-level) and line-sync lyrics
+ * - Segment map support for music videos
+ */
 class LyricsRepository(
     private val api: LyricsApi
 ) {
+    /**
+     * Fetch lyrics using Better Lyrics algorithm
+     * 
+     * Better Lyrics approach (from lyrics.ts:113-115):
+     *   song = song.trim();
+     *   artist = artist.trim();
+     *   artist = artist.replace(", & ", ", ");
+     * 
+     * That's it! No aggressive cleaning, no bracket removal, no artist prefix stripping.
+     */
     suspend fun getLyrics(
         trackName: String,
         artistName: String,
@@ -20,127 +34,48 @@ class LyricsRepository(
         videoId: String?
     ): Result<SyncedLyrics> = withContext(Dispatchers.IO) {
         try {
-            val cleanArtist = sanitizeArtistName(artistName)
-            val cleanTrack = sanitizeTrackName(trackName, cleanArtist)
+            // Better Lyrics minimal cleaning - EXACTLY as in lyrics.ts
+            val cleanTrack = trackName.trim()
+            val cleanArtist = artistName.trim().replace(", & ", ", ")
 
             val request = LyricsRequestDto(
                 song = cleanTrack,
                 artist = cleanArtist,
-                videoId = videoId?.takeIf { it.isNotBlank() } ?: cleanTrack,
+                videoId = videoId?.takeIf { it.isNotBlank() } ?: "",
                 durationMs = durationSeconds.coerceAtLeast(0).toLong() * 1000L
             )
 
             val response = api.fetchLyrics(request)
-            val lines = normalizeLines(response)
 
-            if (lines.isEmpty()) {
-                Result.failure(Exception("No synced lyrics available"))
-            } else {
-                Result.success(
-                    SyncedLyrics(
-                        lines = lines,
-                        sourceLabel = response.source ?: "",
-                        sourceUrl = response.sourceHref
-                    )
-                )
-            }
+            val synced = response.toSyncedLyrics()
+                ?: return@withContext Result.failure(Exception("No lyrics found"))
+
+            Result.success(synced)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+}
 
-    companion object {
-        internal fun sanitizeTrackName(input: String, artistHint: String? = null): String {
-            val normalized = TrackTitleFormatter.stripCommonNoise(input)
-            val artist = artistHint?.takeIf { it.isNotBlank() } ?: return normalized
-            return stripArtistPrefix(normalized, artist)
-        }
-
-        internal fun sanitizeArtistName(input: String): String {
-            val cleaned = TrackTitleFormatter.stripCommonNoise(input)
-            return ArtistNameFormatter.stripTopicSuffix(cleaned)
-        }
-
-        private val artistPrefixDelimiters = charArrayOf('-', '–', '—', ':')
-
-        private fun stripArtistPrefix(track: String, artist: String): String {
-            val delimiterIndex = track.indexOfAny(artistPrefixDelimiters)
-            if (delimiterIndex == -1) return track
-
-            val possibleArtist = track.substring(0, delimiterIndex).trim()
-            val songPortion = track.substring(delimiterIndex + 1).trim()
-            if (songPortion.isEmpty()) return track
-
-            val normalizedArtist = canonicalName(artist)
-            val normalizedPrefix = canonicalName(possibleArtist)
-
-            return if (normalizedArtist.isNotEmpty() && normalizedPrefix.isNotEmpty() &&
-                (normalizedArtist == normalizedPrefix ||
-                 normalizedArtist.startsWith(normalizedPrefix) ||
-                 normalizedPrefix.startsWith(normalizedArtist))) {
-                songPortion
-            } else {
-                track
-            }
-        }
-
-        private fun canonicalName(value: String): String {
-            return value
-                .lowercase()
-                .replace(Regex("[^a-z0-9]"), "")
-        }
-        private fun normalizeLines(response: LyricsResponseDto): List<SyncedLyricLine> {
-            val rich = response.lyrics
-                .map { it.toDomain() }
-                .filter { it.words.isNotBlank() }
-
-            if (rich.isNotEmpty()) {
-                return rich
-            }
-
-            val fallbackText = response.text?.takeIf { it.isNotBlank() }
-                ?: return emptyList()
-
-            return fallbackText.split('\n')
-                .mapIndexed { index, words ->
-                    SyncedLyricLine(
-                        startTimeMs = (index * 2000L),
-                        durationMs = 2000L,
-                        words = words.trim(),
-                        translation = null,
-                        romanization = null,
-                        parts = emptyList()
-                    )
-                }
-                .filter { it.words.isNotEmpty() }
-        }
-
-        private fun LyricLineDto.toDomain(): SyncedLyricLine {
-            return SyncedLyricLine(
-                startTimeMs = startTimeMs,
-                durationMs = durationMs.takeIf { it > 0 } ?: 1000L,
-                words = words,
-                translation = translation?.text,
-                romanization = romanization,
-                parts = parts?.map { it.toDomain() } ?: emptyList()
-            )
-        }
-
-        private fun LyricPartDto.toDomain(): SyncedLyricPart {
-            return SyncedLyricPart(
-                startTimeMs = startTimeMs,
-                durationMs = durationMs,
-                words = words,
-                isBackground = isBackground == true
-            )
-        }
-    }
+/**
+ * Sync types matching Better Lyrics (injectLyrics.ts:181)
+ * - RICH_SYNC: Word-by-word karaoke timing
+ * - LINE_SYNC: Line-by-line timing
+ * - NONE: Unsynced plain text
+ */
+enum class SyncType {
+    RICH_SYNC,  // richsync - word-level parts with durations
+    LINE_SYNC,  // synced - line-level timing only
+    NONE        // none - no timing information
 }
 
 data class SyncedLyrics(
     val lines: List<SyncedLyricLine>,
     val sourceLabel: String,
-    val sourceUrl: String?
+    val sourceUrl: String?,
+    val syncType: SyncType,
+    val language: String?,
+    val musicVideoSynced: Boolean
 )
 
 data class SyncedLyricLine(

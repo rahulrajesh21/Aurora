@@ -6,8 +6,6 @@ import com.example.music_room.Album
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.remote.model.PopularAlbumDto
 import com.example.music_room.data.remote.model.RoomSnapshotDto
-import com.example.music_room.utils.sanitizeArtistLabel
-import com.example.music_room.utils.sanitizeTrackTitle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,14 +69,13 @@ class MainViewModel : ViewModel() {
     }
 
     private fun PopularAlbumDto.toAlbum(): Album? {
-    val sanitizedTitle = title.takeIf { it.isNotBlank() }?.sanitizeTrackTitle() ?: return null
-    val sanitizedArtist = artist.takeIf { it.isNotBlank() } ?: return null
-    val displayArtist = sanitizedArtist.sanitizeArtistLabel().ifBlank { sanitizedArtist }
+        val sanitizedTitle = title.takeIf { it.isNotBlank() }?.trim() ?: return null
+        val sanitizedArtist = artist.takeIf { it.isNotBlank() }?.trim() ?: return null
         val sanitizedImage = imageUrl?.takeIf { it.isNotBlank() } ?: return null
 
         return Album(
             title = sanitizedTitle,
-            artist = displayArtist,
+            artist = sanitizedArtist,
             trackId = id,
             provider = "LASTFM",
             imageUrl = sanitizedImage,
