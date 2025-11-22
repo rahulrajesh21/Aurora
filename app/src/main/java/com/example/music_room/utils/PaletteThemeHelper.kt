@@ -38,12 +38,8 @@ object PaletteThemeHelper {
                                 ?: palette?.getDominantColor(DEFAULT_BACKGROUND)
                                 ?: DEFAULT_BACKGROUND
 
-                            val candidateAccent = palette?.getVibrantColor(DEFAULT_TEXT)
-                                ?: palette?.getLightVibrantColor(DEFAULT_TEXT)
-                                ?: palette?.getMutedColor(DEFAULT_TEXT)
-                                ?: DEFAULT_TEXT
-
-                            val accent = ensureReadableAccent(candidateAccent, background)
+                            val accentCandidate = pickAccentColor(palette, background)
+                            val accent = ensureReadableAccent(accentCandidate, background)
                             onColors(background, accent)
                         }
                 },
@@ -56,7 +52,26 @@ object PaletteThemeHelper {
         Coil.imageLoader(context).enqueue(request)
     }
 
-    private fun ensureReadableAccent(color: Int, background: Int): Int {
+        private fun pickAccentColor(palette: Palette?, background: Int): Int {
+            val swatches = listOfNotNull(
+                palette?.vibrantSwatch,
+                palette?.lightVibrantSwatch,
+                palette?.darkVibrantSwatch,
+                palette?.mutedSwatch,
+                palette?.lightMutedSwatch,
+                palette?.dominantSwatch
+            )
+
+            val prioritized = swatches
+                .sortedByDescending { it.population }
+                .map { it.rgb }
+
+            val firstSaturated = prioritized.firstOrNull { !isTooNeutral(it) }
+
+            return firstSaturated ?: generateAccentFromBackground(background)
+        }
+
+        private fun ensureReadableAccent(color: Int, background: Int): Int {
         var attemptColor = color
         var contrast = ColorUtils.calculateContrast(attemptColor, background)
         val backgroundDark = isColorDark(background)
@@ -79,5 +94,17 @@ object PaletteThemeHelper {
 
     private fun isColorDark(color: Int): Boolean {
         return ColorUtils.calculateLuminance(color) < 0.45
+    }
+
+    private fun isTooNeutral(color: Int): Boolean {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        return hsv[1] < 0.25f || hsv[2] < 0.2f
+    }
+
+    private fun generateAccentFromBackground(background: Int): Int {
+        val backgroundDark = isColorDark(background)
+        val blendTarget = if (backgroundDark) Color.WHITE else Color.BLACK
+        return ColorUtils.blendARGB(background, blendTarget, 0.35f)
     }
 }

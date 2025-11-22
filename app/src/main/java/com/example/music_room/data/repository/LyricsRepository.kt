@@ -75,7 +75,9 @@ data class SyncedLyrics(
     val sourceUrl: String?,
     val syncType: SyncType,
     val language: String?,
-    val musicVideoSynced: Boolean
+    val musicVideoSynced: Boolean,
+    val normalizedSong: String? = null,
+    val normalizedArtist: String? = null
 )
 
 data class SyncedLyricLine(

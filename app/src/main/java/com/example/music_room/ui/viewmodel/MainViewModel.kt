@@ -84,6 +84,5 @@ class MainViewModel : ViewModel() {
         )
     }
 
-    companion object {
-    }
+    companion object
 }

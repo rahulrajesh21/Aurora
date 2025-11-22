@@ -19,6 +19,7 @@ import androidx.media3.session.MediaSessionService
 import com.example.music_room.MainActivity
 import com.example.music_room.R
 import com.example.music_room.data.AuroraServiceLocator
+import com.example.music_room.data.manager.StreamPrefetchCache
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +61,7 @@ class MediaPlaybackService : MediaSessionService() {
         createNotificationChannel()
     }
 
-    override fun onGetSession(controllerInfo: androidx.media3.session.MediaSession.ControllerInfo): MediaSession? {
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession
     }
 
@@ -214,7 +215,9 @@ class MediaPlaybackService : MediaSessionService() {
         currentState = state
         
         val player = exoPlayer ?: return
-        val streamUrl = state.streamUrl
+            val backendStreamUrl = state.streamUrl
+            val prefetched = state.currentTrack?.id?.let { StreamPrefetchCache.consume(it) }
+            val streamUrl = prefetched ?: backendStreamUrl
         
         if (!streamUrl.isNullOrBlank()) {
             // Update media item if stream URL changed

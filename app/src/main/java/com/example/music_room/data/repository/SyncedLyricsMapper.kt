@@ -20,7 +20,9 @@ internal fun LyricsResponseDto.toSyncedLyrics(): SyncedLyrics? {
         sourceUrl = sourceHref,
         syncType = determineSyncType(mappedLines),
         language = language,
-        musicVideoSynced = musicVideoSynced ?: false
+        musicVideoSynced = musicVideoSynced ?: false,
+        normalizedSong = song.takeIf { !it.isNullOrBlank() },
+        normalizedArtist = artist.takeIf { !it.isNullOrBlank() }
     )
 }
 

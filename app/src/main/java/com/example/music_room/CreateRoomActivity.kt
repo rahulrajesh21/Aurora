@@ -184,7 +184,7 @@ class CreateRoomActivity : AppCompatActivity() {
     }
 
     private fun copyToClipboard(text: String) {
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Room Code", text)
         clipboard.setPrimaryClip(clip)
     }
@@ -216,7 +216,7 @@ class CreateRoomActivity : AppCompatActivity() {
         inner class VibeViewHolder(val view: android.view.View) : RecyclerView.ViewHolder(view) {
             val image: ImageView = view.findViewById(R.id.vibeImage)
             val title: TextView = view.findViewById(R.id.vibeTitle)
-            val card: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.cardRoot)
+            val card: MaterialCardView = view.findViewById(R.id.cardRoot)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VibeViewHolder {

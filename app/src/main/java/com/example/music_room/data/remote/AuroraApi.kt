@@ -22,6 +22,7 @@ import com.example.music_room.data.remote.model.HeartbeatRequestDto
 import com.example.music_room.data.remote.model.DeleteRoomRequestDto
 import com.example.music_room.data.remote.model.PauseRequestDto
 import com.example.music_room.data.remote.model.PopularAlbumsResponseDto
+import com.example.music_room.data.remote.model.StreamInfoDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -125,4 +126,7 @@ interface AuroraApi {
 
     @GET("api/popular-albums")
     suspend fun getPopularAlbums(): PopularAlbumsResponseDto
+
+    @GET("api/playback/stream/{trackId}/info")
+    suspend fun getStreamInfo(@Path("trackId") trackId: String): StreamInfoDto
 }

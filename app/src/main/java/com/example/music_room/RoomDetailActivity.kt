@@ -1,5 +1,6 @@
 package com.example.music_room
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +10,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -22,16 +24,17 @@ import coil.load
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.RoomSessionStore
 import com.example.music_room.data.UserIdentity
+import com.example.music_room.data.manager.StreamPrefetcher
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.data.remote.model.TrackDto
 import com.example.music_room.data.repository.SyncedLyrics
-import com.example.music_room.data.repository.SyncType
 import com.example.music_room.databinding.ActivityRoomDetailBinding
 import com.example.music_room.databinding.ItemQueueCarouselBinding
+import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.ui.AddSongBottomSheet
 import com.example.music_room.ui.JoinRoomBottomSheet
 import com.example.music_room.ui.LyricsAdapter
-import com.example.music_room.service.MediaServiceManager
+import com.example.music_room.utils.PaletteThemeHelper
 import com.example.music_room.utils.PermissionUtils
 import com.google.android.material.slider.Slider
 import kotlinx.coroutines.Job
@@ -48,6 +51,11 @@ class RoomDetailActivity : AppCompatActivity() {
     private var lastLyricsTrackKey: String? = null
     private val lyricsAdapter = LyricsAdapter()
     private var syncedLyrics: SyncedLyrics? = null
+    private val prefetchedLyrics = LinkedHashMap<String, SyncedLyrics>()
+    private var upcomingLyricsJob: Job? = null
+    private var audioPrefetchJob: Job? = null
+    private val prefetchedAudioIds = LinkedHashSet<String>()
+    private var lastPrefetchedNextTrackId: String? = null
     
     private val carouselAdapter = CarouselAdapter()
 
@@ -241,6 +249,8 @@ class RoomDetailActivity : AppCompatActivity() {
                 lastLyricsTrackKey = trackKey
                 val targetDuration = track.durationSeconds.takeIf { it > 0 } ?: duration
                 fetchLyrics(track.title, normalizedArtist, targetDuration, track.id)
+                // Apply color theme from album artwork
+                applyColorTheme(track.thumbnailUrl)
             }
         } else {
             lastLyricsTrackKey = null
@@ -255,6 +265,24 @@ class RoomDetailActivity : AppCompatActivity() {
 
         syncedLyrics?.let {
             updateLyricsForPosition(viewModel.sliderBasePositionSeconds, immediate = false)
+        }
+
+        prefetchUpcomingAssets(state)
+    }
+
+    /**
+     * Apply color theme extracted from album artwork to lyrics and progress bar
+     */
+    private fun applyColorTheme(albumArtUrl: String?) {
+        PaletteThemeHelper.applyFromAlbumArt(this, albumArtUrl) { _, accentColor ->
+            // Apply color to lyrics
+            lyricsAdapter.setTextColor(accentColor)
+            
+            // Apply color to progress bar (both thumb and active track)
+            binding.playbackSlider.thumbTintList = ColorStateList.valueOf(accentColor)
+            binding.playbackSlider.trackActiveTintList = ColorStateList.valueOf(accentColor)
+            val inactiveColor = ColorUtils.setAlphaComponent(accentColor, (0.35f * 255).toInt())
+            binding.playbackSlider.trackInactiveTintList = ColorStateList.valueOf(inactiveColor)
         }
     }
 
@@ -271,6 +299,13 @@ class RoomDetailActivity : AppCompatActivity() {
         syncedLyrics = null
         lyricsAdapter.clear()
 
+        val key = buildTrackKey(videoId, title, artist)
+        prefetchedLyrics.remove(key)?.let { cached ->
+            binding.lyricsLoading.isVisible = false
+            displaySyncedLyrics(cached, immediate = true)
+            return
+        }
+
         currentLyricsJob = lifecycleScope.launch {
             val result = lyricsRepository.getLyrics(title, artist, durationSeconds, videoId)
             binding.lyricsLoading.isVisible = false
@@ -279,12 +314,8 @@ class RoomDetailActivity : AppCompatActivity() {
                 if (response.lines.isEmpty()) {
                     showLyricsMessage(R.string.lyrics_not_found)
                 } else {
-                    syncedLyrics = response
-                    // Pass sync type to adapter (Better Lyrics style)
-                    lyricsAdapter.submitLines(response.lines, response.syncType)
-                    binding.lyricsRecycler.isVisible = true
-                    binding.lyricsMessage.isVisible = false
-                    updateLyricsForPosition(viewModel.sliderBasePositionSeconds, immediate = true)
+                    rememberPrefetchedLyrics(key, response)
+                    displaySyncedLyrics(response, immediate = true)
                 }
             }.onFailure { error ->
                 android.util.Log.w("RoomDetailActivity", "Lyrics fetch failed: ${error.message}")
@@ -301,6 +332,24 @@ class RoomDetailActivity : AppCompatActivity() {
         lyricsAdapter.clear()
     }
 
+    private fun displaySyncedLyrics(response: SyncedLyrics, immediate: Boolean) {
+        syncedLyrics = response
+        lyricsAdapter.submitLines(response.lines, response.syncType)
+        binding.lyricsRecycler.isVisible = true
+        binding.lyricsMessage.isVisible = false
+        applyNormalizedMetadata(response)
+        updateLyricsForPosition(viewModel.sliderBasePositionSeconds, immediate)
+    }
+
+    private fun applyNormalizedMetadata(response: SyncedLyrics) {
+        response.normalizedSong?.takeIf { it.isNotBlank() }?.let {
+            binding.currentSongTitle.text = it
+        }
+        response.normalizedArtist?.takeIf { it.isNotBlank() }?.let {
+            binding.currentSongArtist.text = it
+        }
+    }
+
     private fun showLyricsError() {
         showLyricsMessage(R.string.lyrics_not_found)
     }
@@ -312,6 +361,83 @@ class RoomDetailActivity : AppCompatActivity() {
         binding.lyricsRecycler.isVisible = false
         syncedLyrics = null
         lyricsAdapter.clear()
+    }
+
+    private fun buildTrackKey(videoId: String?, title: String?, artist: String?): String {
+        return listOf(videoId.orEmpty(), title.orEmpty(), artist.orEmpty())
+            .joinToString("|")
+            .lowercase()
+    }
+
+    private fun rememberPrefetchedLyrics(key: String, lyrics: SyncedLyrics) {
+        prefetchedLyrics[key] = lyrics
+        if (prefetchedLyrics.size > 8) {
+            val firstKey = prefetchedLyrics.keys.firstOrNull()
+            if (firstKey != null) {
+                prefetchedLyrics.remove(firstKey)
+            }
+        }
+    }
+
+    private fun prefetchUpcomingAssets(state: PlaybackStateDto) {
+        val nextTrack = state.queue.firstOrNull()
+        android.util.Log.d("RoomDetailActivity", "prefetchUpcomingAssets: queue size=${state.queue.size}, nextTrack=${nextTrack?.title}")
+        if (nextTrack == null) {
+            lastPrefetchedNextTrackId = null
+            android.util.Log.d("RoomDetailActivity", "No next track to prefetch")
+            return
+        }
+        if (nextTrack.id == lastPrefetchedNextTrackId) {
+            android.util.Log.d("RoomDetailActivity", "Already prefetched ${nextTrack.id}")
+            return
+        }
+        android.util.Log.d("RoomDetailActivity", "Prefetching track: ${nextTrack.title} (${nextTrack.id})")
+        lastPrefetchedNextTrackId = nextTrack.id
+        prefetchLyricsForTrack(nextTrack)
+        prefetchAudioForTrack(nextTrack)
+    }
+
+    private fun prefetchLyricsForTrack(track: TrackDto) {
+        val artist = track.artist.takeIf { it.isNotBlank() } ?: return
+        if (track.title.isBlank()) return
+        val key = buildTrackKey(track.id, track.title, artist)
+        android.util.Log.d("RoomDetailActivity", "prefetchLyricsForTrack: ${track.title} - $artist, key=$key")
+        if (prefetchedLyrics.containsKey(key)) return
+        upcomingLyricsJob?.cancel()
+        val duration = track.durationSeconds.takeIf { it > 0 } ?: 0
+        upcomingLyricsJob = lifecycleScope.launch {
+            android.util.Log.d("RoomDetailActivity", "Fetching lyrics for prefetch...")
+            val result = lyricsRepository.getLyrics(track.title, artist, duration, track.id)
+            result.onSuccess { 
+                android.util.Log.d("RoomDetailActivity", "Prefetch lyrics SUCCESS for ${track.title}")
+                rememberPrefetchedLyrics(key, it) 
+            }
+            result.onFailure {
+                android.util.Log.w("RoomDetailActivity", "Prefetch lyrics FAILED: ${it.message}")
+            }
+        }
+    }
+
+    private fun prefetchAudioForTrack(track: TrackDto) {
+        val trackId = track.id.takeIf { it.isNotBlank() } ?: return
+        android.util.Log.d("RoomDetailActivity", "prefetchAudioForTrack: ${track.title} ($trackId)")
+        if (!prefetchedAudioIds.add(trackId)) return
+        audioPrefetchJob?.cancel()
+        audioPrefetchJob = lifecycleScope.launch {
+            android.util.Log.d("RoomDetailActivity", "Fetching stream URL for prefetch...")
+            StreamPrefetcher.prefetch(trackId)
+            android.util.Log.d("RoomDetailActivity", "Audio prefetch completed for $trackId")
+        }
+        trimAudioPrefetchCache()
+    }
+
+    private fun trimAudioPrefetchCache() {
+        if (prefetchedAudioIds.size <= 12) return
+        val iterator = prefetchedAudioIds.iterator()
+        if (iterator.hasNext()) {
+            iterator.next()
+            iterator.remove()
+        }
     }
 
     private fun updateLyricsForPosition(positionSeconds: Float, immediate: Boolean) {
@@ -421,7 +547,7 @@ class RoomDetailActivity : AppCompatActivity() {
     private fun joinRoomIfNeeded() {
         if (roomId.isEmpty()) { finish(); return }
         if (isLocked) {
-             val sheet = JoinRoomBottomSheet(this, roomName, { passcode, inviteCode, onSuccess, onError ->
+             val sheet = JoinRoomBottomSheet(this, roomName, { passcode, inviteCode, onSuccess, _ ->
                 viewModel.joinRoom(roomId, UserIdentity.getDisplayName(this), passcode, inviteCode) { memberId ->
                     RoomSessionStore.saveMemberId(this, roomId, memberId)
                     onSuccess(com.example.music_room.data.remote.model.JoinRoomResponseDto(
@@ -453,6 +579,10 @@ class RoomDetailActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         currentLyricsJob?.cancel()
+        upcomingLyricsJob?.cancel()
+        audioPrefetchJob?.cancel()
+        prefetchedLyrics.clear()
+        prefetchedAudioIds.clear()
         super.onDestroy()
     }
 

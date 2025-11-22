@@ -88,6 +88,10 @@ class AuroraRepository(
 
     suspend fun getPopularAlbums(): Result<PopularAlbumsResponseDto> = safeCall { api.getPopularAlbums() }
 
+    suspend fun prefetchStream(trackId: String): Result<String> = safeCall {
+        api.getStreamInfo(trackId).streamUrl
+    }
+
     suspend fun getRooms(): Result<List<RoomSnapshotDto>> = safeCall {
         val rooms = api.getRooms()
         // Fetch queues for all rooms in parallel to populate "Up Next"
