@@ -5,26 +5,20 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.music_room.data.AuroraServiceLocator
-import com.example.music_room.data.remote.model.RoomSnapshotDto
 import com.example.music_room.databinding.ActivityMainBinding
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.textfield.TextInputEditText
+import com.example.music_room.ui.RoomsAdapter
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.Dispatchers
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: com.example.music_room.ui.viewmodel.MainViewModel by viewModels()
+    
     private val albumsAdapter = AlbumAdapter { album, imageView ->
         openPlayer(
             songTitle = album.title,
@@ -34,7 +28,16 @@ class MainActivity : AppCompatActivity() {
             sharedElement = imageView
         )
     }
-    private var trendingRoom: RoomSnapshotDto? = null
+    
+    private val roomsAdapter = RoomsAdapter { snapshot ->
+        val intent = Intent(this, RoomDetailActivity::class.java).apply {
+            putExtra(RoomDetailActivity.EXTRA_ROOM_ID, snapshot.room.id)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_NAME, snapshot.room.name)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_LOCKED, snapshot.isLocked)
+            putExtra(RoomDetailActivity.EXTRA_ROOM_HOST_ID, snapshot.room.hostId)
+        }
+        startActivity(intent)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,37 +47,29 @@ class MainActivity : AppCompatActivity() {
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(binding.root)
 
-        setupMenuButton()
-        setupAlbumsList()
-        setupTrendingActions()
+        setupLists()
+        setupActions()
         observeViewModel()
     }
 
-    private fun setupMenuButton() {
-        binding.menuButton.setOnClickListener {
-            com.example.music_room.ui.BottomSheetMenu(
-                onCreateRoom = { startActivity(Intent(this@MainActivity, CreateRoomActivity::class.java)) },
-                onBrowseRooms = { startActivity(Intent(this@MainActivity, RoomsActivity::class.java)) }
-            ).show(supportFragmentManager, "BottomSheetMenu")
-        }
-    }
-
-    private fun setupAlbumsList() {
-        binding.popularAlbumsRecyclerView.apply {
+    private fun setupLists() {
+        // Rooms Carousel
+        binding.roomsRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = roomsAdapter
+        }
+
+        // Popular Albums
+        binding.popularAlbumsRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
             adapter = albumsAdapter
         }
     }
 
-    private fun setupTrendingActions() {
-        binding.joinRoomButton.setOnClickListener { openTrendingRoom() }
-        binding.trendingCard.setOnClickListener { openTrendingRoom() }
-        binding.searchIcon.setOnClickListener { promptSearch() }
-        binding.trendingSeeAll.setOnClickListener {
-            startActivity(Intent(this@MainActivity, RoomsActivity::class.java))
-        }
-        binding.popularSeeAll.setOnClickListener {
-            viewModel.refreshData()
+    private fun setupActions() {
+        binding.searchButton.setOnClickListener { promptSearch() }
+        binding.roomsSeeAll.setOnClickListener { 
+            startActivity(Intent(this, RoomsActivity::class.java))
         }
     }
 
@@ -82,30 +77,21 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    // Trending Room
-                    trendingRoom = state.trendingRoom
-                    binding.joinRoomButton.isEnabled = trendingRoom != null
-                    if (trendingRoom == null) {
-                        if (state.isLoading && state.trendingRoom == null) {
-                            binding.roomName.text = getString(R.string.loading)
-                        } else {
-                            binding.roomName.text = getString(R.string.rooms_empty)
-                            binding.hostName.text = ""
-                            binding.currentSong.text = getString(R.string.no_track_playing)
-                            binding.currentArtist.text = getString(R.string.no_track_artist)
-                            binding.listenerCount.text = "0"
-                        }
-                    } else {
-                        applyTrendingSnapshot(trendingRoom!!)
-                    }
+                    // Rooms
+                    roomsAdapter.submitList(state.rooms)
+                    binding.roomsEmptyState.isVisible = state.rooms.isEmpty() && !state.isLoading
+                    binding.roomsRecyclerView.isVisible = state.rooms.isNotEmpty()
 
                     // Albums
                     if (state.isAlbumsLoading) {
                         binding.popularAlbumsRecyclerView.isVisible = false
+                        binding.popularAlbumsEmptyState.isVisible = false
                         binding.popularAlbumsSkeleton.isVisible = true
                     } else {
                         binding.popularAlbumsSkeleton.isVisible = false
-                        binding.popularAlbumsRecyclerView.isVisible = true
+                        val hasAlbums = state.popularAlbums.isNotEmpty()
+                        binding.popularAlbumsRecyclerView.isVisible = hasAlbums
+                        binding.popularAlbumsEmptyState.isVisible = !hasAlbums
                         albumsAdapter.submitList(state.popularAlbums)
                     }
 
@@ -118,28 +104,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyTrendingSnapshot(snapshot: RoomSnapshotDto) {
-        binding.roomName.text = snapshot.room.name
-        binding.hostName.text = getString(R.string.hosted_by_template, snapshot.room.hostName)
-        binding.listenerCount.text = snapshot.memberCount.toString()
-        val track = snapshot.nowPlaying?.currentTrack ?: snapshot.nowPlaying?.queue?.firstOrNull()
-        binding.currentSong.text = track?.title ?: getString(R.string.no_track_playing)
-        binding.currentArtist.text = track?.artist ?: getString(R.string.no_track_artist)
-    }
-
     private fun promptSearch() {
         startActivity(Intent(this, SearchActivity::class.java))
-    }
-
-    private fun openTrendingRoom() {
-        val room = trendingRoom ?: return
-        val intent = Intent(this, RoomDetailActivity::class.java).apply {
-            putExtra(RoomDetailActivity.EXTRA_ROOM_ID, room.room.id)
-            putExtra(RoomDetailActivity.EXTRA_ROOM_NAME, room.room.name)
-            putExtra(RoomDetailActivity.EXTRA_ROOM_LOCKED, room.isLocked)
-            putExtra(RoomDetailActivity.EXTRA_ROOM_HOST_ID, room.room.hostId)
-        }
-        startActivity(intent)
     }
 
     private fun openPlayer(
@@ -166,6 +132,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refreshTrendingRoom()
+        viewModel.refreshRooms()
     }
 }

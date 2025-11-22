@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.example.music_room.R
 import com.example.music_room.data.repository.SyncedLyricLine
@@ -18,11 +19,20 @@ class LyricsAdapter : RecyclerView.Adapter<LyricsAdapter.LyricViewHolder>() {
 		return LyricViewHolder(view)
 	}
 
-	override fun onBindViewHolder(holder: LyricViewHolder, position: Int) {
-		val line = lines[position]
-		val isActive = position == activeIndex
-		holder.bind(line, isActive)
-	}
+	private var textColor: Int = android.graphics.Color.WHITE
+	private var secondaryTextColor: Int = android.graphics.Color.LTGRAY
+
+    fun setTextColor(color: Int) {
+        textColor = color
+		secondaryTextColor = ColorUtils.blendARGB(color, android.graphics.Color.WHITE, 0.4f)
+        notifyDataSetChanged()
+    }
+
+		override fun onBindViewHolder(holder: LyricViewHolder, position: Int) {
+			val line = lines[position]
+			val isActive = position == activeIndex
+			holder.bind(line, isActive, textColor, secondaryTextColor)
+		}
 
 	override fun getItemCount(): Int = lines.size
 
@@ -95,15 +105,18 @@ class LyricsAdapter : RecyclerView.Adapter<LyricsAdapter.LyricViewHolder>() {
 		private val lyricText: TextView = itemView.findViewById(R.id.lyricText)
 		private val translationText: TextView = itemView.findViewById(R.id.translationText)
 
-		fun bind(line: SyncedLyricLine, active: Boolean) {
+		fun bind(line: SyncedLyricLine, active: Boolean, color: Int, secondaryColor: Int) {
 			lyricText.text = line.words.ifBlank { "\u266a" }
-			val supplemental = line.translation ?: line.romanization
-			if (supplemental.isNullOrBlank()) {
-				translationText.visibility = View.GONE
-			} else {
-				translationText.visibility = View.VISIBLE
-				translationText.text = supplemental
-			}
+			lyricText.setTextColor(color)
+            
+            val supplemental = line.translation ?: line.romanization
+            if (supplemental.isNullOrBlank()) {
+                translationText.visibility = View.GONE
+            } else {
+                translationText.visibility = View.VISIBLE
+                translationText.text = supplemental
+				translationText.setTextColor(secondaryColor)
+            }
 
 			val targetAlpha = if (active) 1f else 0.4f
 			lyricText.alpha = targetAlpha
@@ -112,4 +125,3 @@ class LyricsAdapter : RecyclerView.Adapter<LyricsAdapter.LyricViewHolder>() {
 		}
 	}
 }
-

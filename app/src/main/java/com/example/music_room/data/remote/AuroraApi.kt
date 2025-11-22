@@ -21,6 +21,7 @@ import com.example.music_room.data.remote.model.SeekRequestDto
 import com.example.music_room.data.remote.model.HeartbeatRequestDto
 import com.example.music_room.data.remote.model.DeleteRoomRequestDto
 import com.example.music_room.data.remote.model.PauseRequestDto
+import com.example.music_room.data.remote.model.PopularAlbumsResponseDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -121,4 +122,7 @@ interface AuroraApi {
         @Path("roomId") roomId: String,
         @Body body: CreateInviteRequestDto
     ): CreateInviteResponseDto
+
+    @GET("api/popular-albums")
+    suspend fun getPopularAlbums(): PopularAlbumsResponseDto
 }

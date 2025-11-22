@@ -13,7 +13,11 @@
     "playback": {
       "seekTimeoutMs": 1000,
       "retryAttempts": 3,
-      "retryBackoffMs": [1000, 2000, 4000],
+      "retryBackoffMs": [
+        1000,
+        2000,
+        4000
+      ],
       "startPlaybackTimeoutMs": 2000,
       "transitionTimeoutMs": 2000
     },
@@ -23,6 +27,17 @@
     },
     "websocket": {
       "broadcastDelayMs": 500
+    },
+    "popularAlbums": {
+      "cachePath": "./data/popular-albums.json",
+      "refreshIntervalHours": 24,
+      "lastFmBaseUrl": "https://ws.audioscrobbler.com/2.0/",
+      "lastFmApiKey": "",
+      "lastFmMethod": "tag.gettopalbums",
+      "lastFmFormat": "json",
+      "requestLimit": 100,
+      "maxAlbums": 50,
+      "fallbackDataPath": "./data/popular-albums.fallback.json"
     },
     "rooms": {
       "storageDriver": "libsql",

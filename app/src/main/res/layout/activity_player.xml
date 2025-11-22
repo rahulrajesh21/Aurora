@@ -1,299 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/background_light"
+    android:fitsSystemWindows="true">
 
-    <!-- Base gradient background -->
-    <View
+    <!-- Header -->
+    <ImageView
+        android:id="@+id/backButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_back"
+        android:padding="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="@color/black"
+    android:layout_marginStart="24dp"
+    android:layout_marginTop="10dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMaxTextSize="26sp"
+        android:autoSizeMinTextSize="18sp"
+        android:autoSizeStepGranularity="1sp"
+        android:text="Lyrics"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/backButton"
+        app:layout_constraintBottom_toBottomOf="@id/backButton"/>
+
+    <ImageView
+        android:id="@+id/shareButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_add" 
+        android:rotation="45"
+        android:padding="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="@color/black"
+    android:layout_marginEnd="24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/backButton"/>
+
+    <!-- Queue Carousel -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/queueCarousel"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/gradient_background"/>
+        android:layout_height="280dp"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@id/backButton"/>
 
-    <!-- Teal radial blob - center -->
-    <View
-        android:layout_width="400dp"
-        android:layout_height="400dp"
-        android:layout_gravity="center"
-        android:layout_marginTop="-100dp"
-        android:background="@drawable/radial_teal_blob"
-        android:alpha="0.6"/>
+    <!-- Song Info -->
+    <TextView
+        android:id="@+id/songTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        tools:text="Sonic Youth"
+    android:textColor="@color/black"
+    android:textSize="26sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/jetbrains_mono"
+        android:gravity="center"
+    app:autoSizeTextType="uniform"
+    app:autoSizeMaxTextSize="26sp"
+    app:autoSizeMinTextSize="18sp"
+    app:autoSizeStepGranularity="1sp"
+    android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="32dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/queueCarousel"/>
 
-    <ScrollView
+    <TextView
+        android:id="@+id/artistName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="BONE"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:textStyle="normal"
+        android:fontFamily="@font/jetbrains_mono"
+        android:background="@drawable/capsule_background_dark"
+        android:backgroundTint="@color/black"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/songTitle"/>
+
+    <!-- Lyrics Area -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/lyricsRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="24dp"
+        android:paddingHorizontal="32dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/artistName"
+        app:layout_constraintBottom_toTopOf="@id/progressContainer"/>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- Progress Bar Container -->
+    <LinearLayout
+        android:id="@+id/progressContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingBottom="32dp"
+        android:background="@drawable/gradient_background_bottom_fade"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <SeekBar
+            android:id="@+id/progressBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fitsSystemWindows="true"
-            android:padding="24dp">
+            android:progressTint="@color/accent_green_vibrant"
+            android:thumbTint="@color/accent_green_vibrant"/>
 
-            <!-- Top Bar -->
-            <ImageView
-                android:id="@+id/backButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_back"
-                android:padding="12dp"
-                android:background="@drawable/circle_button_background"
-                app:tint="@color/white"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
-
-            <TextView
-                android:id="@+id/nowPlayingText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/now_playing_label"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/backButton"
-                app:layout_constraintBottom_toBottomOf="@id/backButton"/>
-
-            <ImageView
-                android:id="@+id/favoriteButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_favorite"
-                android:padding="12dp"
-                android:background="@drawable/circle_button_background"
-                app:tint="@color/primary_green"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
-
-            <!-- Album Art -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/albumArtCard"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_marginTop="40dp"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="8dp"
-                app:layout_constraintDimensionRatio="1:1"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/backButton"
-                app:layout_constraintWidth_percent="0.85">
-
-                <ImageView
-                    android:id="@+id/albumArtImage"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/album_placeholder"/>
-
-            </androidx.cardview.widget.CardView>
-
-            <!-- Song Title -->
-            <TextView
-                android:id="@+id/songTitle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/reminder_label"
-                android:textColor="@color/white"
-                android:textSize="32sp"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:layout_marginTop="32dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/albumArtCard"/>
-
-            <!-- Artist Name -->
-            <TextView
-                android:id="@+id/artistName"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                tools:text="The Weeknd"
-                android:textColor="@color/text_tertiary"
-                android:textSize="18sp"
-                android:gravity="center"
-                android:layout_marginTop="8dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/songTitle"/>
-
-            <!-- Waveform with Play Button -->
-            <RelativeLayout
-                android:id="@+id/waveformContainer"
-                android:layout_width="0dp"
-                android:layout_height="80dp"
-                android:layout_marginTop="32dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/artistName">
-
-                <ImageView
-                    android:id="@+id/waveformImage"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:src="@drawable/waveform_large"
-                    android:scaleType="fitXY"
-                    android:alpha="0.6"/>
-
-                <ImageView
-                    android:id="@+id/playPauseButton"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:layout_centerInParent="true"
-                    android:src="@drawable/ic_pause_large"
-                    android:elevation="4dp"/>
-
-            </RelativeLayout>
-
-            <!-- Time Progress -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
             <TextView
                 android:id="@+id/currentTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                tools:text="00:23"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:layout_marginTop="16dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/waveformContainer"/>
-
+                tools:text="0:00"
+                android:textColor="@color/text_secondary_grey"
+                android:textSize="12sp"/>
             <TextView
                 android:id="@+id/totalTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                tools:text="02:34"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:layout_marginTop="16dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/waveformContainer"/>
+                android:layout_alignParentEnd="true"
+                tools:text="3:45"
+                android:textColor="@color/text_secondary_grey"
+                android:textSize="12sp"/>
+        </RelativeLayout>
 
-            <!-- Control Buttons -->
-            <LinearLayout
-                android:id="@+id/controlButtons"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:layout_marginTop="24dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/currentTime">
+    </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/shuffleButton"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:src="@drawable/ic_shuffle"
-                    android:padding="16dp"
-                    android:background="@drawable/circle_button_background"
-                    app:tint="@color/white"/>
-
-                <ImageView
-                    android:id="@+id/previousButton"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@drawable/ic_previous"
-                    android:padding="16dp"
-                    android:layout_marginStart="16dp"
-                    android:background="@drawable/circle_button_background"
-                    app:tint="@color/white"/>
-
-                <ImageView
-                    android:id="@+id/nextButton"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@drawable/ic_next"
-                    android:padding="16dp"
-                    android:layout_marginStart="16dp"
-                    android:background="@drawable/circle_button_background"
-                    app:tint="@color/white"/>
-
-                <ImageView
-                    android:id="@+id/repeatButton"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:src="@drawable/ic_repeat"
-                    android:padding="16dp"
-                    android:layout_marginStart="16dp"
-                    android:background="@drawable/circle_button_background"
-                    app:tint="@color/white"/>
-
-            </LinearLayout>
-
-            <!-- Lyrics Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/lyricsButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/lyrics_label"
-                android:textColor="@color/white"
-                android:backgroundTint="@color/glass_stroke"
-                app:cornerRadius="20dp"
-                app:icon="@drawable/ic_music_note"
-                app:iconTint="@color/white"
-                android:layout_marginTop="24dp"
-                app:layout_constraintTop_toBottomOf="@id/controlButtons"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginBottom="32dp"/>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-    </ScrollView>
-
-    <!-- Lyrics Overlay -->
-    <FrameLayout
-        android:id="@+id/lyricsOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/scrim_color"
-        android:visibility="gone"
-        android:clickable="true"
-        android:focusable="true">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/lyricsRecycler"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:padding="32dp"
-            android:visibility="gone"/>
-
-        <ProgressBar
-            android:id="@+id/lyricsLoading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:indeterminateTint="@color/white"
-            android:visibility="gone"/>
-
-        <TextView
-            android:id="@+id/lyricsMessage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="@string/lyrics_not_found"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            android:visibility="gone"/>
-
-        <ImageView
-            android:id="@+id/closeLyricsButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_close"
-            android:padding="12dp"
-            android:background="@drawable/circle_button_background"
-            app:tint="@color/white"
-            android:layout_gravity="top|end"
-            android:layout_margin="24dp"/>
-
-    </FrameLayout>
-
-
-
-</FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

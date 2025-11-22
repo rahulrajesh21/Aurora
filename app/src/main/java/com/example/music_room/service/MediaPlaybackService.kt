@@ -20,6 +20,8 @@ import com.example.music_room.MainActivity
 import com.example.music_room.R
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.data.remote.model.PlaybackStateDto
+import com.example.music_room.utils.displayTitle
+import com.example.music_room.utils.sanitizeArtistLabel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -234,7 +236,7 @@ class MediaPlaybackService : MediaSessionService() {
             val currentPosition = player.currentPosition / 1000f
             val backendPosition = state.positionSeconds
             if (kotlin.math.abs(currentPosition - backendPosition) > 2.0f) {
-                player.seekTo((backendPosition * 1000L).coerceAtLeast(0L))
+                player.seekTo((backendPosition * 1000).toLong().coerceAtLeast(0L))
             }
             
             updateNotification()
@@ -248,7 +250,7 @@ class MediaPlaybackService : MediaSessionService() {
             if (isPlaying) {
                 repository.resume(roomId)
             } else {
-                repository.pause(roomId)
+                repository.pause(roomId, null)
             }
         } catch (e: Exception) {
             android.util.Log.e("MediaService", "Failed to sync playback state: ${e.message}")
@@ -285,7 +287,9 @@ class MediaPlaybackService : MediaSessionService() {
 
     private fun updateNotification() {
         val state = currentState ?: return
-        val track = state.currentTrack
+    val track = state.currentTrack
+    val artistLabel = track?.artist?.sanitizeArtistLabel()?.takeIf { it.isNotBlank() } ?: track?.artist
+    val titleLabel = track?.displayTitle() ?: "Aurora Music"
         
         val playPauseAction = if (state.isPlaying) {
             NotificationCompat.Action.Builder(
@@ -303,8 +307,8 @@ class MediaPlaybackService : MediaSessionService() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_music_note)
-            .setContentTitle(track?.title ?: "Aurora Music")
-            .setContentText(track?.artist ?: "No track playing")
+                .setContentTitle(titleLabel)
+            .setContentText(artistLabel ?: "No track playing")
             .setContentIntent(createContentPendingIntent())
             .addAction(
                 NotificationCompat.Action.Builder(

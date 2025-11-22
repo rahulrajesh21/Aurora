@@ -14,8 +14,8 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:textColor="@color/white"
-        android:textSize="20sp"
-        android:fontFamily="@font/outfit"
+    android:textSize="20sp"
+    android:fontFamily="@font/jetbrains_mono"
         android:alpha="0.5"
         tools:text="I said, ooh, I'm blinded by the lights" />
 
@@ -26,8 +26,8 @@
         android:layout_marginTop="4dp"
         android:gravity="center"
         android:textColor="@color/text_tertiary"
-        android:textSize="14sp"
-        android:fontFamily="@font/outfit"
+    android:textSize="14sp"
+    android:fontFamily="@font/jetbrains_mono"
         android:visibility="gone"
         tools:text="He dicho uh, la luz me ciega"
         tools:visibility="visible" />

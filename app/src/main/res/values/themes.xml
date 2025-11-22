@@ -1,24 +1,25 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Customize your light theme here. -->
     <style name="Theme.Music_room" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/primary_purple</item>
-        <item name="colorPrimaryVariant">@color/primary_purple</item>
-        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimary">@color/black</item>
+        <item name="colorPrimaryVariant">@color/black</item>
+        <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/primary_green</item>
         <item name="colorSecondaryVariant">@color/primary_green</item>
         <item name="colorOnSecondary">@color/black</item>
         
         <!-- Typography -->
-        <item name="android:fontFamily">@font/outfit</item>
-        <item name="fontFamily">@font/outfit</item>
+    <item name="android:fontFamily">@font/jetbrains_mono</item>
+    <item name="fontFamily">@font/jetbrains_mono</item>
 
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/background_light</item>
+        <item name="android:windowLightStatusBar">true</item>
         <!-- Navigation bar color. -->
-        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/background_light</item>
+        <item name="android:windowLightNavigationBar">true</item>
         
         <!-- Transitions -->
         <item name="android:windowContentTransitions">true</item>
@@ -33,7 +34,8 @@
 
     <style name="Widget.MaterialComponents.Button" parent="Widget.MaterialComponents.Button.UnelevatedButton">
         <item name="android:stateListAnimator">@animator/scale_on_press</item>
-        <item name="android:fontFamily">@font/outfit</item>
+        <item name="android:fontFamily">@font/jetbrains_mono</item>
+        <item name="fontFamily">@font/jetbrains_mono</item>
     </style>
 
     <style name="BottomSheetDialogTheme" parent="Theme.MaterialComponents.Light.BottomSheetDialog">

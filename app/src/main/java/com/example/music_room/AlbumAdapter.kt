@@ -7,16 +7,17 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import com.example.music_room.utils.sanitizeArtistLabel
 
 class AlbumAdapter(
     private val onAlbumClick: (Album, ImageView) -> Unit
 ) : androidx.recyclerview.widget.ListAdapter<Album, AlbumAdapter.AlbumViewHolder>(AlbumDiffCallback()) {
 
     class AlbumViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val albumImage: ImageView = view.findViewById(R.id.albumImage)
-        val albumTitle: TextView = view.findViewById(R.id.albumTitleInside)
-        val albumArtist: TextView = view.findViewById(R.id.albumArtistInside)
-        val playButton: ImageView = view.findViewById(R.id.playButton)
+        val albumImage: ImageView = view.findViewById(R.id.albumArt)
+        val albumTitle: TextView = view.findViewById(R.id.albumTitle)
+        val albumArtist: TextView = view.findViewById(R.id.albumArtist)
+        val menuButton: ImageView = view.findViewById(R.id.menuButton)
     }
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AlbumViewHolder {
@@ -41,13 +42,9 @@ class AlbumAdapter(
         } else {
             holder.albumImage.setImageResource(R.drawable.album_placeholder)
         }
-        holder.albumTitle.text = album.title
-        holder.albumArtist.text = album.artist
-        
-        // Click listener for play button
-        holder.playButton.setOnClickListener {
-            onAlbumClick(album, holder.albumImage)
-        }
+    holder.albumTitle.text = album.title
+    val artistLabel = album.artist.sanitizeArtistLabel().ifBlank { album.artist }
+    holder.albumArtist.text = artistLabel
         
         // Click listener for entire card
         holder.itemView.setOnClickListener {

@@ -1,88 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="160dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="16dp"
-    app:cardBackgroundColor="@android:color/transparent"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="0dp"
-    app:strokeColor="@color/glass_stroke"
-    app:strokeWidth="1dp">
+    android:paddingVertical="8dp"
+    android:paddingHorizontal="16dp"
+    android:background="?attr/selectableItemBackground">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+    <androidx.cardview.widget.CardView
+        android:id="@+id/albumArtSkeleton"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/skeletonBackgroundCard"
-            android:layout_width="150dp"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+        <com.example.music_room.ui.ShimmerView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="5dp">
+    </androidx.cardview.widget.CardView>
 
-                <!-- Title Skeleton -->
-                <com.example.music_room.ui.ShimmerView
-                    android:id="@+id/titleSkeleton"
-                    android:layout_width="100dp"
-                    android:layout_height="16dp"
-                    android:layout_marginTop="8dp"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"/>
+    <com.example.music_room.ui.ShimmerView
+        android:id="@+id/titleSkeleton"
+        android:layout_width="0dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="32dp"
+        app:layout_constraintStart_toEndOf="@id/albumArtSkeleton"
+        app:layout_constraintEnd_toStartOf="@id/menuSkeleton"
+        app:layout_constraintTop_toTopOf="@id/albumArtSkeleton"/>
 
-                <!-- Artist Skeleton -->
-                <com.example.music_room.ui.ShimmerView
-                    android:id="@+id/artistSkeleton"
-                    android:layout_width="80dp"
-                    android:layout_height="12dp"
-                    android:layout_marginTop="8dp"
-                    app:layout_constraintTop_toBottomOf="@id/titleSkeleton"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"/>
+    <com.example.music_room.ui.ShimmerView
+        android:id="@+id/badgeSkeleton"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toEndOf="@id/albumArtSkeleton"
+        app:layout_constraintTop_toBottomOf="@id/titleSkeleton"/>
 
-                <!-- Space for the circle image -->
-                <View
-                    android:layout_width="140dp"
-                    android:layout_height="140dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="12dp"
-                    app:layout_constraintTop_toBottomOf="@id/artistSkeleton"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"/>
+    <com.example.music_room.ui.ShimmerView
+        android:id="@+id/artistSkeleton"
+        android:layout_width="0dp"
+        android:layout_height="14dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="32dp"
+        app:layout_constraintStart_toEndOf="@id/badgeSkeleton"
+        app:layout_constraintEnd_toStartOf="@id/menuSkeleton"
+        app:layout_constraintTop_toBottomOf="@id/titleSkeleton"
+        app:layout_constraintBottom_toBottomOf="@id/albumArtSkeleton"/>
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
+    <com.example.music_room.ui.ShimmerView
+        android:id="@+id/menuSkeleton"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
-        </androidx.cardview.widget.CardView>
-
-        <!-- Image Skeleton (Circle) -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="140dp"
-            android:layout_height="140dp"
-            app:cardCornerRadius="70dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="@android:color/transparent"
-            android:layout_marginBottom="17dp"
-            app:layout_constraintBottom_toBottomOf="@id/skeletonBackgroundCard"
-            app:layout_constraintStart_toStartOf="@id/skeletonBackgroundCard"
-            app:layout_constraintEnd_toEndOf="@id/skeletonBackgroundCard">
-
-            <com.example.music_room.ui.ShimmerView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"/>
-
-        </androidx.cardview.widget.CardView>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-</com.google.android.material.card.MaterialCardView>
+</androidx.constraintlayout.widget.ConstraintLayout>

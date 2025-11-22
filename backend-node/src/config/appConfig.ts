@@ -37,6 +37,18 @@ export interface WebSocketConfig {
   broadcastDelayMs: number;
 }
 
+export interface PopularAlbumsConfig {
+  cachePath: string;
+  refreshIntervalHours: number;
+  lastFmBaseUrl: string;
+  lastFmApiKey: string;
+  lastFmMethod: string;
+  lastFmFormat: string;
+  requestLimit: number;
+  maxAlbums: number;
+  fallbackDataPath: string;
+}
+
 export interface RoomInviteConfig {
   ttlSeconds: number;
   maxPending: number;
@@ -68,6 +80,7 @@ export interface AppConfig {
   state: StateConfig;
   websocket: WebSocketConfig;
   rooms: RoomConfig;
+  popularAlbums: PopularAlbumsConfig;
 }
 
 interface RawConfigFile {
@@ -81,6 +94,7 @@ interface RawConfigFile {
       invite?: Partial<RoomInviteConfig>;
       libsql?: Partial<RoomLibSQLConfig>;
     };
+    popularAlbums?: Partial<PopularAlbumsConfig>;
   };
 }
 
@@ -108,6 +122,17 @@ const DEFAULTS: AppConfig = {
   },
   websocket: {
     broadcastDelayMs: 500,
+  },
+  popularAlbums: {
+    cachePath: './data/popular-albums.json',
+    refreshIntervalHours: 24,
+    lastFmBaseUrl: 'https://ws.audioscrobbler.com/2.0/',
+    lastFmApiKey: '',
+  lastFmMethod: 'chart.gettopalbums',
+    lastFmFormat: 'json',
+    requestLimit: 100,
+    maxAlbums: 50,
+    fallbackDataPath: './data/popular-albums.fallback.json',
   },
   rooms: {
     storageDriver: RoomStorageDriver.FILE,
@@ -167,7 +192,7 @@ export function loadConfig(): AppConfig {
     throw new ConfigurationError('ROOMS_LIBSQL_URL is required when ROOMS_STORAGE_DRIVER=libsql');
   }
 
-  return {
+  const config: AppConfig = {
     youtube: {
       apiKey: youtubeApiKey,
       searchTimeout: Number(process.env.YOUTUBE_SEARCH_TIMEOUT ?? streaming.youtube?.searchTimeout ?? DEFAULTS.youtube.searchTimeout),
@@ -192,6 +217,49 @@ export function loadConfig(): AppConfig {
     websocket: {
       broadcastDelayMs: Number(process.env.WS_BROADCAST_DELAY_MS ?? streaming.websocket?.broadcastDelayMs ?? DEFAULTS.websocket.broadcastDelayMs),
     },
+    popularAlbums: {
+      cachePath: String(process.env.POPULAR_ALBUMS_CACHE_PATH ?? streaming.popularAlbums?.cachePath ?? DEFAULTS.popularAlbums.cachePath),
+      refreshIntervalHours: Number(
+        process.env.POPULAR_ALBUMS_REFRESH_HOURS ??
+          streaming.popularAlbums?.refreshIntervalHours ??
+          DEFAULTS.popularAlbums.refreshIntervalHours,
+      ),
+      lastFmBaseUrl: String(
+        process.env.LASTFM_BASE_URL ??
+          streaming.popularAlbums?.lastFmBaseUrl ??
+          DEFAULTS.popularAlbums.lastFmBaseUrl,
+      ),
+      lastFmApiKey: String(
+        process.env.LASTFM_API_KEY ??
+          streaming.popularAlbums?.lastFmApiKey ??
+          DEFAULTS.popularAlbums.lastFmApiKey,
+      ),
+      lastFmMethod: String(
+        process.env.LASTFM_METHOD ??
+          streaming.popularAlbums?.lastFmMethod ??
+          DEFAULTS.popularAlbums.lastFmMethod,
+      ),
+      lastFmFormat: String(
+        process.env.LASTFM_FORMAT ??
+          streaming.popularAlbums?.lastFmFormat ??
+          DEFAULTS.popularAlbums.lastFmFormat,
+      ),
+      requestLimit: Number(
+        process.env.LASTFM_REQUEST_LIMIT ??
+          streaming.popularAlbums?.requestLimit ??
+          DEFAULTS.popularAlbums.requestLimit,
+      ),
+      maxAlbums: Number(
+        process.env.POPULAR_ALBUMS_MAX_RESULTS ??
+          streaming.popularAlbums?.maxAlbums ??
+          DEFAULTS.popularAlbums.maxAlbums,
+      ),
+      fallbackDataPath: String(
+        process.env.POPULAR_ALBUMS_FALLBACK_PATH ??
+          streaming.popularAlbums?.fallbackDataPath ??
+          DEFAULTS.popularAlbums.fallbackDataPath,
+      ),
+    },
     rooms: {
       storageDriver,
       storagePath: String(process.env.ROOMS_STORAGE_PATH ?? roomOverrides.storagePath ?? DEFAULTS.rooms.storagePath),
@@ -209,6 +277,14 @@ export function loadConfig(): AppConfig {
         : undefined,
     },
   };
+
+  if (!config.popularAlbums.lastFmApiKey) {
+    throw new ConfigurationError(
+      'Last.fm API key is required. Set LASTFM_API_KEY env or update streaming.popularAlbums.lastFmApiKey',
+    );
+  }
+
+  return config;
 }
 
 function parseBoolean(value: unknown): boolean {

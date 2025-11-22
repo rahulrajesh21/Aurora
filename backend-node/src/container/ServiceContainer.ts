@@ -12,6 +12,7 @@ import { LibSQLRoomStorage } from '../storage/LibSQLRoomStorage';
 import { RoomStorage } from '../storage/RoomStorage';
 import { RoomManager } from '../services/RoomManager';
 import { LyricsService } from '../services/lyrics/LyricsService';
+import { PopularAlbumsService } from '../services/PopularAlbumsService';
 
 export class ServiceContainer {
   private static instance: ServiceContainer | null = null;
@@ -38,6 +39,7 @@ export class ServiceContainer {
   private readonly streamingService: StreamingService;
   private readonly roomManager: RoomManager;
   private readonly lyricsService: LyricsService;
+  private readonly popularAlbumsService: PopularAlbumsService;
 
   private constructor() {
     this.config = loadConfig();
@@ -48,6 +50,7 @@ export class ServiceContainer {
     this.webSocketManager = new WebSocketManager();
     this.roomManager = RoomManager.create(this.config, roomStorage);
     this.lyricsService = new LyricsService();
+  this.popularAlbumsService = new PopularAlbumsService(this.config.popularAlbums);
 
     this.webSocketManager.setLyricsService(this.lyricsService);
     this.lyricsService.setWebSocketManager(this.webSocketManager);
@@ -71,7 +74,7 @@ export class ServiceContainer {
   }
 
   private async bootstrap(): Promise<void> {
-    await this.roomManager.init();
+    await Promise.all([this.roomManager.init(), this.popularAlbumsService.init()]);
   }
 
   getConfig(): AppConfig {
@@ -92,5 +95,9 @@ export class ServiceContainer {
 
   getLyricsService(): LyricsService {
     return this.lyricsService;
+  }
+
+  getPopularAlbumsService(): PopularAlbumsService {
+    return this.popularAlbumsService;
   }
 }

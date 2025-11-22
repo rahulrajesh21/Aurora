@@ -25,7 +25,7 @@ class MediaActionReceiver : BroadcastReceiver() {
             try {
                 when (action) {
                     "PLAY" -> repository.resume(roomId)
-                    "PAUSE" -> repository.pause(roomId)
+                    "PAUSE" -> repository.pause(roomId, null)
                     "NEXT" -> repository.skip(roomId)
                     "PREVIOUS" -> repository.previous(roomId)
                 }

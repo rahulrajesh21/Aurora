@@ -1,0 +1,85 @@
+{
+  "fetchedAt": "2025-11-22T06:50:04.356Z",
+  "albums": [
+    {
+      "id": "The Weeknd-Hurry Up Tomorrow",
+      "title": "Hurry Up Tomorrow",
+      "artist": "The Weeknd",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/706f247829fbe0ee14febb195c6200c4.jpg",
+      "externalUrl": "https://www.last.fm/music/The+Weeknd/Hurry+Up+Tomorrow",
+      "releaseDate": "2025-02-02T10:03:00.000Z"
+    },
+    {
+      "id": "02769f4d-ee78-3680-aa79-67f3a821c931",
+      "title": "Pablo Honey",
+      "artist": "Radiohead",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/e6b38ee9858b906470ba6826825b9354.jpg",
+      "externalUrl": "https://www.last.fm/music/Radiohead/Pablo+Honey",
+      "releaseDate": "2024-04-04T05:49:00.000Z"
+    },
+    {
+      "id": "523f5e88-9988-436d-ab60-6d514c1f0e15",
+      "title": "Flower Boy",
+      "artist": "Tyler, The Creator",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/52a7f32bdc99238080b0f17e859b3b4d.jpg",
+      "externalUrl": "https://www.last.fm/music/Tyler,+The+Creator/Flower+Boy",
+      "releaseDate": "2025-11-11T10:24:00.000Z"
+    },
+    {
+      "id": "091ad434-48f7-4027-b3d5-939606f52f5c",
+      "title": "Lover",
+      "artist": "Taylor Swift",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/d3f083370c371a3ba1cddafaf193c27d.jpg",
+      "externalUrl": "https://www.last.fm/music/Taylor+Swift/Lover",
+      "releaseDate": "2025-06-05T23:11:00.000Z"
+    },
+    {
+      "id": "45bbde2e-bfc1-48c6-8b58-491348cd5459",
+      "title": "GNX",
+      "artist": "Kendrick Lamar",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/a79564a9768d05272682b252deb02079.png",
+      "externalUrl": "https://www.last.fm/music/Kendrick+Lamar/GNX",
+      "releaseDate": "2025-03-03T11:03:00.000Z"
+    },
+    {
+      "id": "4482a7c2-64bc-479e-acd4-9d64daa74c5c",
+      "title": "yes, and?",
+      "artist": "Ariana Grande",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/efbb549548f69034dae88484ce2de9af.jpg",
+      "externalUrl": "https://www.last.fm/music/Ariana+Grande/yes,+and%3F",
+      "releaseDate": "2025-01-01T14:21:00.000Z"
+    },
+    {
+      "id": "0c41aa7d-de57-4d98-a3c0-4c740834b410",
+      "title": "CRASH",
+      "artist": "Charli xcx",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/647da295e6e0696ecfcd73229d5816f3.jpg",
+      "externalUrl": "https://www.last.fm/music/Charli+xcx/CRASH",
+      "releaseDate": "2025-09-09T12:19:00.000Z"
+    },
+    {
+      "id": "1065bda8-c38f-4824-8ce1-248014836d3f",
+      "title": "The College Dropout",
+      "artist": "Kanye West",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/61d5e94c9aa712b29e283325bc5ae87f.jpg",
+      "externalUrl": "https://www.last.fm/music/Kanye+West/The+College+Dropout",
+      "releaseDate": "2025-11-11T10:29:00.000Z"
+    },
+    {
+      "id": "0371b43b-2f83-486a-835e-eff8fdd50c75",
+      "title": "Born This Way",
+      "artist": "Lady Gaga",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/f403f8f345f08b8aaba47a1be32b1c11.png",
+      "externalUrl": "https://www.last.fm/music/Lady+Gaga/Born+This+Way",
+      "releaseDate": "2025-07-07T10:22:00.000Z"
+    },
+    {
+      "id": "5d731f93-7658-4354-b908-4cd6dcc74bd0",
+      "title": "Man’s Best Friend",
+      "artist": "Sabrina Carpenter",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/6bbc8416c1f1c3a25054d4ae3b5fbb35.png",
+      "externalUrl": "https://www.last.fm/music/Sabrina+Carpenter/Man%E2%80%99s+Best+Friend",
+      "releaseDate": "2025-08-08T17:39:00.000Z"
+    }
+  ]
+}

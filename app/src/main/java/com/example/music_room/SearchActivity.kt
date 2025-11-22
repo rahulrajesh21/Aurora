@@ -10,6 +10,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.music_room.data.AuroraServiceLocator
 import com.example.music_room.databinding.ActivitySearchBinding
+import com.example.music_room.utils.displayTitle
+import com.example.music_room.utils.sanitizeArtistLabel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -83,8 +85,8 @@ class SearchActivity : AppCompatActivity() {
                 .onSuccess { response ->
                     val mapped = response.tracks.map { track ->
                         Album(
-                            title = track.title,
-                            artist = track.artist,
+                            title = track.displayTitle(),
+                            artist = track.artist.sanitizeArtistLabel().ifBlank { track.artist },
                             trackId = track.id,
                             provider = track.provider,
                             imageUrl = getHighResThumbnailUrl(track.thumbnailUrl),

@@ -5,6 +5,8 @@ import com.example.music_room.data.remote.model.LyricLineDto
 import com.example.music_room.data.remote.model.LyricPartDto
 import com.example.music_room.data.remote.model.LyricsRequestDto
 import com.example.music_room.data.remote.model.LyricsResponseDto
+import com.example.music_room.utils.ArtistNameFormatter
+import com.example.music_room.utils.TrackTitleFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -48,20 +50,15 @@ class LyricsRepository(
     }
 
     companion object {
-        private val noisePattern = Regex("(?i)(official video|official audio|lyrics|lyric video|video|audio|hd|hq|4k|remastered)")
-        private val bracketContent = Regex("(?i)[\\(\\[].*?[\\)\\]]")
-        private val multipleSpaces = Regex("\\s+")
-        private val topicSuffixPattern = Regex("(?i)\\s*-\\s*topic$")
-
         internal fun sanitizeTrackName(input: String, artistHint: String? = null): String {
-            val normalized = normalizeCommonNoise(input)
+            val normalized = TrackTitleFormatter.stripCommonNoise(input)
             val artist = artistHint?.takeIf { it.isNotBlank() } ?: return normalized
             return stripArtistPrefix(normalized, artist)
         }
 
         internal fun sanitizeArtistName(input: String): String {
-            val cleaned = normalizeCommonNoise(input)
-            return topicSuffixPattern.replace(cleaned, "").trim()
+            val cleaned = TrackTitleFormatter.stripCommonNoise(input)
+            return ArtistNameFormatter.stripTopicSuffix(cleaned)
         }
 
         private val artistPrefixDelimiters = charArrayOf('-', '–', '—', ':')
@@ -92,16 +89,6 @@ class LyricsRepository(
                 .lowercase()
                 .replace(Regex("[^a-z0-9]"), "")
         }
-
-        private fun normalizeCommonNoise(input: String): String {
-            return input
-                .replace(noisePattern, "")
-                .replace(bracketContent, "")
-                .replace(Regex("(?i)vevo"), "")
-                .trim()
-                .replace(multipleSpaces, " ")
-        }
-
         private fun normalizeLines(response: LyricsResponseDto): List<SyncedLyricLine> {
             val rich = response.lyrics
                 .map { it.toDomain() }

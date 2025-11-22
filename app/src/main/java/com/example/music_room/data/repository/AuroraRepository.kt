@@ -13,6 +13,7 @@ import com.example.music_room.data.remote.model.LeaveRoomRequestDto
 import com.example.music_room.data.remote.model.PlayRequestDto
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.data.remote.model.PauseRequestDto
+import com.example.music_room.data.remote.model.PopularAlbumsResponseDto
 import com.example.music_room.data.remote.model.QueueResponseDto
 import com.example.music_room.data.remote.model.ReorderQueueRequestDto
 import com.example.music_room.data.remote.model.RoomInvitesResponseDto
@@ -85,6 +86,8 @@ class AuroraRepository(
 
     suspend fun getQueue(roomId: String): Result<QueueResponseDto> = safeCall { api.getQueue(roomId) }
 
+    suspend fun getPopularAlbums(): Result<PopularAlbumsResponseDto> = safeCall { api.getPopularAlbums() }
+
     suspend fun getRooms(): Result<List<RoomSnapshotDto>> = safeCall {
         val rooms = api.getRooms()
         // Fetch queues for all rooms in parallel to populate "Up Next"
@@ -118,6 +121,7 @@ class AuroraRepository(
     suspend fun createRoom(
         name: String,
         hostName: String,
+        description: String? = null,
         visibility: String = "PUBLIC",
         passcode: String? = null
     ): Result<CreateRoomResponseDto> = safeCall {
@@ -125,6 +129,7 @@ class AuroraRepository(
             CreateRoomRequestDto(
                 name = name,
                 hostName = hostName,
+                description = description,
                 visibility = visibility,
                 passcode = passcode
             )

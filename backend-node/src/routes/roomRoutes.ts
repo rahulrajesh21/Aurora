@@ -50,6 +50,7 @@ export function createRoomRoutes(roomManager: RoomManager): Router {
       const result = await roomManager.createRoom({
         name: body.name ?? '',
         hostName: body.hostName ?? '',
+        description: body.description,
         visibility: body.visibility,
         passcode: body.passcode,
       });

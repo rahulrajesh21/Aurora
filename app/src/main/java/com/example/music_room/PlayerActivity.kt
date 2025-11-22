@@ -4,28 +4,46 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.CompositePageTransformer
+import androidx.viewpager2.widget.MarginPageTransformer
+import androidx.viewpager2.widget.ViewPager2
 import coil.load
 import com.example.music_room.data.AuroraServiceLocator
-import com.example.music_room.data.remote.model.PlaybackStateDto
-import com.example.music_room.databinding.ActivityPlayerBinding
-import com.example.music_room.service.MediaServiceManager
-import com.example.music_room.utils.PermissionUtils
-import kotlinx.coroutines.launch
-import com.example.music_room.R
-import androidx.annotation.StringRes
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.music_room.data.repository.SyncedLyrics
-import com.example.music_room.ui.LyricsAdapter
 import com.example.music_room.data.manager.PlayerTelemetryManager
 import com.example.music_room.data.remote.model.LyricsResponseDto
+import com.example.music_room.data.remote.model.PlaybackStateDto
+import com.example.music_room.data.remote.model.TrackDto
 import com.example.music_room.data.repository.SyncedLyricLine
 import com.example.music_room.data.repository.SyncedLyricPart
+import com.example.music_room.data.repository.SyncedLyrics
+import com.example.music_room.databinding.ActivityPlayerBinding
+import com.example.music_room.databinding.ItemQueueCarouselBinding
+import com.example.music_room.service.MediaServiceManager
+import com.example.music_room.ui.LyricsAdapter
+import com.example.music_room.utils.PermissionUtils
+import com.example.music_room.utils.displayArtist
+import com.example.music_room.utils.displayTitle
+import com.example.music_room.utils.sanitizeArtistLabel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import androidx.core.graphics.ColorUtils
+import coil.Coil
+import coil.request.ImageRequest
+import coil.size.Precision
+import coil.size.Scale
+import com.example.music_room.utils.PaletteThemeHelper
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class PlayerActivity : AppCompatActivity() {
 
@@ -54,6 +72,12 @@ class PlayerActivity : AppCompatActivity() {
     private var lastFetchedTrackId: String? = null
     private val lyricsAdapter = LyricsAdapter()
     private var syncedLyrics: SyncedLyrics? = null
+    
+    private val queueAdapter = QueueAdapter()
+    private var queueRecyclerView: RecyclerView? = null
+    private val carouselPadding by lazy { resources.getDimensionPixelOffset(R.dimen.carousel_padding) }
+    private val carouselPageMargin by lazy { resources.getDimensionPixelOffset(R.dimen.carousel_page_margin) }
+    private var isUserSeeking = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,29 +92,10 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
 
-        binding.backButton.setOnClickListener { finish() }
-        binding.favoriteButton.setOnClickListener {
-            Toast.makeText(this, R.string.feature_coming_soon, Toast.LENGTH_SHORT).show()
-        }
-        binding.playPauseButton.setOnClickListener { lifecycleScope.launch { togglePlayPause() } }
-        binding.nextButton.setOnClickListener { lifecycleScope.launch { skipTrack() } }
-        binding.previousButton.setOnClickListener { lifecycleScope.launch { previousTrack() } }
-        binding.shuffleButton.setOnClickListener { lifecycleScope.launch { shuffleQueue() } }
-        binding.repeatButton.setOnClickListener { lifecycleScope.launch { restartTrack() } }
-
-        binding.lyricsRecycler.apply {
-            layoutManager = LinearLayoutManager(this@PlayerActivity)
-            adapter = lyricsAdapter
-            itemAnimator = null
-        }
-
-        binding.lyricsButton.setOnClickListener {
-            binding.lyricsOverlay.isVisible = true
-            syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds, immediate = true) }
-        }
-        binding.closeLyricsButton.setOnClickListener {
-            binding.lyricsOverlay.isVisible = false
-        }
+        setupHeader()
+        setupCarousel()
+        setupLyrics()
+        setupProgressBar()
 
         // Initialize background media service
         mediaServiceManager = MediaServiceManager.getInstance(this)
@@ -98,29 +103,119 @@ class PlayerActivity : AppCompatActivity() {
         lifecycleScope.launch { refreshPlaybackState() }
     }
 
+    private fun setupHeader() {
+        binding.backButton.setOnClickListener { finish() }
+        binding.shareButton.setOnClickListener { 
+             // Placeholder for share/add
+             Toast.makeText(this, "Share/Add feature coming soon", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupCarousel() {
+        binding.queueCarousel.apply {
+            adapter = queueAdapter
+            clipToPadding = false
+            clipChildren = false
+            offscreenPageLimit = 3
+            queueRecyclerView = getChildAt(0) as? RecyclerView
+            queueRecyclerView?.apply {
+                clipToPadding = false
+                clipChildren = false
+                overScrollMode = RecyclerView.OVER_SCROLL_NEVER
+                setPadding(carouselPadding, 0, carouselPadding, 0)
+            }
+
+            setPageTransformer(createCarouselTransformer())
+
+            registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    super.onPageSelected(position)
+                    // Browse Mode: Update title/artist but DO NOT skip track automatically
+                    val adapter = adapter as? QueueAdapter ?: return
+                    val track = adapter.getItem(position) ?: return
+                    
+                    binding.songTitle.text = track.displayTitle()
+                    val displayArtist = track.displayArtist()
+                    binding.artistName.text = displayArtist.takeIf { it.isNotBlank() }
+                        ?: getString(R.string.no_track_artist)
+                }
+            })
+        }
+    }
+
+    private fun createCarouselTransformer(): CompositePageTransformer {
+        return CompositePageTransformer().apply {
+            addTransformer(MarginPageTransformer(carouselPageMargin))
+            addTransformer { page, position ->
+                val clampedPosition = position.coerceIn(-1f, 1f)
+                val focusProgress = 1 - abs(clampedPosition)
+                val minScale = 0.75f
+                val scale = minScale + focusProgress * (1f - minScale)
+                page.scaleY = scale
+                page.scaleX = scale
+                page.alpha = 0.35f + focusProgress * 0.65f
+                page.translationX = -clampedPosition * page.width * 0.18f
+            }
+        }
+    }
+
+    private fun updateCarouselDecor(itemCount: Int) {
+        val recyclerView = queueRecyclerView ?: return
+        if (itemCount > 1) {
+            recyclerView.clipToPadding = false
+            recyclerView.setPadding(carouselPadding, 0, carouselPadding, 0)
+        } else {
+            recyclerView.clipToPadding = true
+            recyclerView.setPadding(0, 0, 0, 0)
+        }
+        binding.queueCarousel.isUserInputEnabled = itemCount > 1
+    }
+
+    private fun setupLyrics() {
+        binding.lyricsRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@PlayerActivity)
+            adapter = lyricsAdapter
+        }
+    }
+
+    private fun setupProgressBar() {
+        binding.progressBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    binding.currentTime.text = formatTime(progress)
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                isUserSeeking = true
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                isUserSeeking = false
+                val progress = seekBar?.progress ?: 0
+                lifecycleScope.launch {
+                    val id = roomId ?: return@launch
+                    repository.seekTo(id, progress)
+                }
+            }
+        })
+    }
+
     override fun onStart() {
         super.onStart()
-        
-        // Request notification permission and start background service
         if (PermissionUtils.requestNotificationPermissionIfNeeded(this)) {
             startBackgroundService()
         }
 
         playbackSocket.setLyricsListener { response ->
-            runOnUiThread {
-                handleLyricsUpdate(response)
-            }
+            runOnUiThread { handleLyricsUpdate(response) }
         }
 
         playbackSocket.connect(
             onState = { state -> runOnUiThread { applyState(state) } },
             onError = { error ->
                 runOnUiThread {
-                    Toast.makeText(
-                        this,
-                        error.message ?: getString(R.string.player_error),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this, error.message ?: getString(R.string.player_error), Toast.LENGTH_SHORT).show()
                 }
             }
         )
@@ -144,18 +239,12 @@ class PlayerActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         PermissionUtils.handlePermissionResult(
             requestCode, permissions, grantResults,
             onGranted = { startBackgroundService() },
-            onDenied = { 
-                Toast.makeText(this, "Notification permission required for background playback", Toast.LENGTH_LONG).show()
-            }
+            onDenied = { Toast.makeText(this, "Permission required", Toast.LENGTH_LONG).show() }
         )
     }
 
@@ -163,59 +252,117 @@ class PlayerActivity : AppCompatActivity() {
         val id = roomId ?: return
         repository.getPlaybackState(id)
             .onSuccess { applyState(it) }
-            .onFailure {
-                Toast.makeText(this, it.message ?: getString(R.string.player_error), Toast.LENGTH_SHORT).show()
-            }
+            .onFailure { Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show() }
     }
 
     private fun applyState(state: PlaybackStateDto) {
         currentState = state
         basePositionSeconds = state.positionSeconds.toFloat()
         baseTimestamp = SystemClock.elapsedRealtime()
-        val track = state.currentTrack
-        binding.songTitle.text = track?.title ?: getString(R.string.no_track_playing)
-        binding.artistName.text = track?.artist ?: getString(R.string.no_track_artist)
-        binding.nowPlayingText.text = if (state.isPlaying) {
-            getString(R.string.now_playing_label)
-        } else {
-            getString(R.string.paused_label)
+        
+       val track = state.currentTrack
+       val sanitizedArtist = track?.artist?.sanitizeArtistLabel()?.takeIf { it.isNotBlank() }
+       val artistForDisplay = sanitizedArtist ?: track?.artist?.takeIf { it.isNotBlank() }
+        
+        // Only update text if we are NOT browsing (or if it's the first load)
+        if (binding.queueCarousel.currentItem == 0) {
+             binding.songTitle.text = track?.displayTitle() ?: getString(R.string.no_track_playing)
+           binding.artistName.text = artistForDisplay ?: getString(R.string.no_track_artist)
         }
-        binding.playPauseButton.setImageResource(
-            if (state.isPlaying) R.drawable.ic_pause_large else R.drawable.ic_play_circle
-        )
-        val transitionName = intent.getStringExtra(EXTRA_TRANSITION_NAME)
-        if (transitionName != null) {
-            binding.albumArtImage.transitionName = transitionName
-            supportPostponeEnterTransition()
+        
+        // Update Carousel
+        val items = (listOfNotNull(track) + state.queue)
+            .distinctBy { candidate ->
+                candidate.id.takeIf { !it.isNullOrBlank() } ?: "${candidate.title}-${candidate.artist}"
+            }
+
+        queueAdapter.submitList(items)
+        updateCarouselDecor(items.size)
+        if (items.isNotEmpty()) {
+            binding.queueCarousel.setCurrentItem(0, false)
         }
 
-        if (!track?.thumbnailUrl.isNullOrBlank()) {
-            binding.albumArtImage.load(track?.thumbnailUrl) {
-                placeholder(R.drawable.album_placeholder)
-                error(R.drawable.album_placeholder)
-                listener(
-                    onSuccess = { _, _ -> supportStartPostponedEnterTransition() },
-                    onError = { _, _ -> supportStartPostponedEnterTransition() }
-                )
-            }
-        } else {
-            binding.albumArtImage.setImageResource(R.drawable.album_placeholder)
-            supportStartPostponedEnterTransition()
-        }
-        binding.currentTime.text = formatTime(state.positionSeconds.toInt())
-        val duration = track?.durationSeconds ?: state.positionSeconds.toInt()
+        // Update Progress Bar
+        val duration = track?.durationSeconds ?: 0
+        binding.progressBar.max = duration
         binding.totalTime.text = formatTime(duration)
         
+        if (!isUserSeeking) {
+             binding.progressBar.progress = state.positionSeconds.toInt()
+             binding.currentTime.text = formatTime(state.positionSeconds.toInt())
+        }
+
         // Background service handles playback
         telemetryManager.updateCurrentTrack(track)
 
         if (state.isPlaying) {
             schedulePlaybackTicker()
+            binding.queueCarousel.alpha = 1.0f
         } else {
             stopPlaybackTicker()
+            binding.queueCarousel.alpha = 0.5f
         }
 
-        syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds, immediate = false) }
+    syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds) }
+        
+        // Fetch lyrics if changed
+        val artistForLyrics = artistForDisplay
+        if (track?.id != null && track.id != lastFetchedTrackId && !artistForLyrics.isNullOrBlank()) {
+            lastFetchedTrackId = track.id
+            fetchLyrics(track.title, artistForLyrics, track.durationSeconds, track.id)
+            
+            // Use track thumbnail directly
+            updateTheme(track.thumbnailUrl)
+        }
+        
+        // Aggressive Prefetch: Coil handles caching automatically
+        state.queue.forEach { queueTrack ->
+             queueTrack.thumbnailUrl?.let { url ->
+                 val request = ImageRequest.Builder(this)
+                     .data(url)
+                     .build()
+                 Coil.imageLoader(this).enqueue(request)
+             }
+        }
+    }
+
+    private fun updateTheme(url: String?) {
+        PaletteThemeHelper.applyFromAlbumArt(this, url) { background, accent ->
+            val textColor = ensureReadableTextColor(accent, background)
+            applyLyricTheme(background, textColor)
+        }
+    }
+
+    private fun applyLyricTheme(backgroundColor: Int, textColor: Int) {
+        val gradient = GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(
+                adjustAlpha(backgroundColor, 0.95f),
+                adjustAlpha(backgroundColor, 0.7f),
+                adjustAlpha(backgroundColor, 0.2f)
+            )
+        )
+        binding.lyricsRecyclerView.background = gradient
+        lyricsAdapter.setTextColor(textColor)
+        binding.songTitle.setTextColor(textColor)
+    }
+
+    private fun adjustAlpha(color: Int, factor: Float): Int {
+        val alpha = (Color.alpha(color) * factor).roundToInt().coerceIn(0, 255)
+        return ColorUtils.setAlphaComponent(color, alpha)
+    }
+
+    private fun ensureReadableTextColor(candidate: Int, background: Int): Int {
+        val contrast = ColorUtils.calculateContrast(candidate, background)
+        return if (contrast < 2f) {
+            if (isColorDark(background)) Color.WHITE else Color.BLACK
+        } else {
+            candidate
+        }
+    }
+
+    private fun isColorDark(color: Int): Boolean {
+        return ColorUtils.calculateLuminance(color) < 0.5
     }
 
     private fun handleLyricsUpdate(response: LyricsResponseDto) {
@@ -238,111 +385,49 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         if (lines.isNotEmpty()) {
-            syncedLyrics = SyncedLyrics(
-                lines = lines,
-                sourceLabel = response.source ?: "Better Lyrics",
-                sourceUrl = response.sourceHref
-            )
+            syncedLyrics = SyncedLyrics(lines = lines, sourceLabel = response.source ?: "Better Lyrics", sourceUrl = response.sourceHref)
             lyricsAdapter.submitLines(lines)
-            binding.lyricsRecycler.isVisible = true
-            binding.lyricsMessage.isVisible = false
-            updateLyricsForPosition(basePositionSeconds, immediate = false)
-        } else {
-            showLyricsMessage(R.string.lyrics_not_found)
+            binding.lyricsRecyclerView.isVisible = true
+            updateLyricsForPosition(basePositionSeconds)
         }
     }
 
     private fun fetchLyrics(title: String?, artist: String?, duration: Int, videoId: String?) {
         if (title == null || artist == null) return
-
         currentLyricsJob?.cancel()
-        binding.lyricsRecycler.isVisible = false
-        binding.lyricsMessage.isVisible = false
         lyricsAdapter.clear()
         syncedLyrics = null
         currentLyricsJob = lifecycleScope.launch {
-            binding.lyricsLoading.isVisible = true
-            binding.lyricsMessage.isVisible = false
-
-            delay(500)
-
             val result = lyricsRepository.getLyrics(title, artist, duration, videoId)
-
-            binding.lyricsLoading.isVisible = false
-
             result.onSuccess { response ->
-                if (response.lines.isEmpty()) {
-                    showLyricsMessage(R.string.lyrics_not_found)
-                } else {
+                if (response.lines.isNotEmpty()) {
                     syncedLyrics = response
                     lyricsAdapter.submitLines(response.lines)
-                    binding.lyricsRecycler.isVisible = true
-                    binding.lyricsMessage.isVisible = false
-                    updateLyricsForPosition(basePositionSeconds, immediate = false)
+                    binding.lyricsRecyclerView.isVisible = true
+                    updateLyricsForPosition(basePositionSeconds)
                 }
-            }.onFailure {
-                showLyricsError()
             }
         }
     }
 
-    private fun showLyricsMessage(@StringRes messageRes: Int) {
-        binding.lyricsMessage.text = getString(messageRes)
-        binding.lyricsMessage.isVisible = true
-        binding.lyricsRecycler.isVisible = false
-        syncedLyrics = null
-        lyricsAdapter.clear()
-    }
-
-    private fun showLyricsError() {
-        showLyricsMessage(R.string.lyrics_not_found)
-    }
-
     private suspend fun togglePlayPause() {
         val id = roomId ?: return
-        val result = if (currentState?.isPlaying == true) {
+        if (currentState?.isPlaying == true) {
             val positionSeconds = resolveAccuratePlaybackPositionSeconds()
             repository.pause(id, positionSeconds)
         } else {
             repository.resume(id)
         }
-        result
-            .onSuccess { applyState(it) }
-            .onFailure { showControlError(it) }
     }
 
     private suspend fun skipTrack() {
         val id = roomId ?: return
         repository.next(id)
-            .onSuccess { applyState(it) }
-            .onFailure { showControlError(it) }
     }
 
     private suspend fun previousTrack() {
         val id = roomId ?: return
         repository.previous(id)
-            .onSuccess { applyState(it) }
-            .onFailure { showControlError(it) }
-    }
-
-    private suspend fun shuffleQueue() {
-        val id = roomId ?: return
-        repository.shuffleQueue(id)
-            .onSuccess {
-                Toast.makeText(this, R.string.shuffle_success, Toast.LENGTH_SHORT).show()
-                refreshPlaybackState()
-            }
-            .onFailure { showControlError(it) }
-    }
-
-    private suspend fun restartTrack() {
-        val id = roomId ?: return
-        repository.seekTo(id, 0)
-            .onSuccess {
-                Toast.makeText(this, R.string.restart_track_success, Toast.LENGTH_SHORT).show()
-                applyState(it)
-            }
-            .onFailure { showControlError(it) }
     }
 
     private fun schedulePlaybackTicker() {
@@ -358,44 +443,29 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun tickPlaybackPosition() {
         val state = currentState ?: return
-        if (!state.isPlaying) {
-            return
-        }
+        if (!state.isPlaying) return
+        
         val elapsed = basePositionSeconds + ((SystemClock.elapsedRealtime() - baseTimestamp) / 1000f)
         val clamped = elapsed.coerceAtLeast(0f)
-        binding.currentTime.text = formatTime(clamped.toInt())
+        
+        if (!isUserSeeking) {
+            binding.progressBar.progress = clamped.toInt()
+            binding.currentTime.text = formatTime(clamped.toInt())
+        }
         
         basePositionSeconds = clamped
         baseTimestamp = SystemClock.elapsedRealtime()
-        updateLyricsForPosition(clamped, immediate = binding.lyricsOverlay.isVisible)
+    updateLyricsForPosition(clamped)
     }
 
-    private fun updateLyricsForPosition(positionSeconds: Float, immediate: Boolean) {
+    private fun updateLyricsForPosition(positionSeconds: Float) {
         val lyrics = syncedLyrics ?: return
         if (lyrics.lines.isEmpty()) return
-
         val index = lyricsAdapter.updatePlaybackPosition((positionSeconds * 1000L).toLong())
-        if (index != -1 && binding.lyricsOverlay.isVisible) {
-            scrollLyricsTo(index, immediate)
+        if (index != -1) {
+            val layoutManager = binding.lyricsRecyclerView.layoutManager as? LinearLayoutManager ?: return
+            layoutManager.scrollToPositionWithOffset(index, binding.lyricsRecyclerView.height / 2)
         }
-    }
-
-    private fun scrollLyricsTo(index: Int, immediate: Boolean) {
-        if (index !in 0 until lyricsAdapter.itemCount) return
-        val layoutManager = binding.lyricsRecycler.layoutManager as? LinearLayoutManager ?: return
-        if (immediate) {
-            layoutManager.scrollToPositionWithOffset(index, binding.lyricsRecycler.height / 2)
-        } else {
-            binding.lyricsRecycler.smoothScrollToPosition(index)
-        }
-    }
-
-    private fun showControlError(error: Throwable) {
-        Toast.makeText(
-            this,
-            error.message ?: getString(R.string.playback_controls_error),
-            Toast.LENGTH_SHORT
-        ).show()
     }
 
     private fun formatTime(seconds: Int): String {
@@ -406,16 +476,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun resolveAccuratePlaybackPositionSeconds(): Double {
-        val state = currentState
-        if (state == null) {
-            return basePositionSeconds.toDouble()
-        }
-        if (!state.isPlaying) {
-            return basePositionSeconds.toDouble()
-        }
+        val state = currentState ?: return basePositionSeconds.toDouble()
+        if (!state.isPlaying) return basePositionSeconds.toDouble()
         val elapsedSeconds = (SystemClock.elapsedRealtime() - baseTimestamp) / 1000f
-        val position = (basePositionSeconds + elapsedSeconds).coerceAtLeast(0f)
-        return position.toDouble()
+        return (basePositionSeconds + elapsedSeconds).coerceAtLeast(0f).toDouble()
     }
 
     companion object {
@@ -425,5 +489,59 @@ class PlayerActivity : AppCompatActivity() {
         const val EXTRA_TRACK_ID = "extra_track_id"
         const val EXTRA_PROVIDER = "extra_provider"
         const val EXTRA_TRANSITION_NAME = "extra_transition_name"
+    }
+
+    inner class QueueAdapter : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>() {
+        private var items: List<TrackDto> = emptyList()
+
+        fun submitList(newItems: List<TrackDto>) {
+            items = newItems
+            notifyDataSetChanged()
+        }
+        
+        fun getItem(position: Int): TrackDto? {
+            return items.getOrNull(position)
+        }
+
+        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): QueueViewHolder {
+            val binding = ItemQueueCarouselBinding.inflate(android.view.LayoutInflater.from(parent.context), parent, false)
+            return QueueViewHolder(binding)
+        }
+
+        override fun onBindViewHolder(holder: QueueViewHolder, position: Int) {
+            holder.bind(items[position], position)
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        inner class QueueViewHolder(private val binding: ItemQueueCarouselBinding) : RecyclerView.ViewHolder(binding.root) {
+            fun bind(track: TrackDto, position: Int) {
+                // Load art using repository (async)
+                // Load art using Coil
+                binding.albumArt.load(track.thumbnailUrl) {
+                    placeholder(R.drawable.album_placeholder)
+                    error(R.drawable.album_placeholder)
+                    precision(Precision.EXACT)
+                    scale(Scale.FILL)
+                    crossfade(true)
+                }
+                
+                binding.root.setOnClickListener {
+                    // Tap to Play logic
+                    lifecycleScope.launch {
+                        val id = roomId ?: return@launch
+                        // If it's the current track (pos 0), toggle play/pause
+                        if (position == 0) {
+                            togglePlayPause()
+                        } else {
+                            // If it's a queue item, play it
+                            // We need to find its position in the real queue or use track ID if API supports it
+                            // For now, we can try to skip to it if it's next, or just playTrack
+                            repository.playTrack(id, track.id, track.provider)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

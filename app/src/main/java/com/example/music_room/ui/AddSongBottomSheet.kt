@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.core.widget.doOnTextChanged
 import com.example.music_room.R
 import com.example.music_room.data.remote.model.TrackDto
+import com.example.music_room.utils.displayTitle
+import com.example.music_room.utils.sanitizeArtistLabel
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.textfield.TextInputEditText
 import coil.load
@@ -143,9 +145,10 @@ class AddSongBottomSheet(
             var onAdd: (() -> Unit)? = null
 
             fun bind(track: TrackDto) {
-                title.text = track.title
+                title.text = track.displayTitle()
                 val duration = formatDuration(track.durationSeconds)
-                subtitle.text = listOfNotNull(track.artist, duration).joinToString(" • ")
+                val artistLabel = track.artist.sanitizeArtistLabel().ifBlank { track.artist }
+                subtitle.text = listOfNotNull(artistLabel, duration).joinToString(" • ")
                 if (!track.thumbnailUrl.isNullOrBlank()) {
                     thumb.load(track.thumbnailUrl) {
                         placeholder(R.drawable.album_placeholder)

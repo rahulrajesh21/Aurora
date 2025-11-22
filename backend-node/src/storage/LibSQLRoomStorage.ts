@@ -22,7 +22,7 @@ export class LibSQLRoomStorage implements RoomStorage {
   async listRooms(): Promise<Room[]> {
     await this.ready;
     const result = await this.client.execute({
-      sql: `SELECT id, name, host_id, host_name, visibility, max_members, passcode, created_at, updated_at FROM rooms ORDER BY created_at DESC`,
+      sql: `SELECT id, name, host_id, host_name, visibility, max_members, description, passcode, created_at, updated_at FROM rooms ORDER BY created_at DESC`,
     });
     return result.rows.map((row) => this.mapRoom(row));
   }
@@ -30,7 +30,7 @@ export class LibSQLRoomStorage implements RoomStorage {
   async getRoom(roomId: string): Promise<Room | null> {
     await this.ready;
     const result = await this.client.execute({
-      sql: `SELECT id, name, host_id, host_name, visibility, max_members, passcode, created_at, updated_at FROM rooms WHERE id = ? LIMIT 1`,
+      sql: `SELECT id, name, host_id, host_name, visibility, max_members, description, passcode, created_at, updated_at FROM rooms WHERE id = ? LIMIT 1`,
       args: [roomId],
     });
     const row = result.rows[0];
@@ -40,14 +40,15 @@ export class LibSQLRoomStorage implements RoomStorage {
   async saveRoom(room: Room): Promise<void> {
     await this.ready;
     await this.client.execute({
-      sql: `INSERT INTO rooms (id, name, host_id, host_name, visibility, max_members, passcode, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      sql: `INSERT INTO rooms (id, name, host_id, host_name, visibility, max_members, description, passcode, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
               name = excluded.name,
               host_id = excluded.host_id,
               host_name = excluded.host_name,
               visibility = excluded.visibility,
               max_members = excluded.max_members,
+              description = excluded.description,
               passcode = excluded.passcode,
               created_at = excluded.created_at,
               updated_at = excluded.updated_at`,
@@ -58,6 +59,7 @@ export class LibSQLRoomStorage implements RoomStorage {
         room.hostName,
         room.visibility,
         room.maxMembers,
+        room.description ?? null,
         room.passcode ?? null,
         room.createdAt,
         room.updatedAt,
@@ -151,6 +153,7 @@ export class LibSQLRoomStorage implements RoomStorage {
       hostName: String(row.host_name),
       visibility: String(row.visibility) as Room['visibility'],
       maxMembers: Number(row.max_members),
+      description: row.description == null ? undefined : String(row.description),
       passcode: row.passcode == null ? undefined : String(row.passcode),
       createdAt: Number(row.created_at),
       updatedAt: Number(row.updated_at),

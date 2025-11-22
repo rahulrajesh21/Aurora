@@ -12,6 +12,7 @@ export interface Room {
   hostName: string;
   visibility: RoomVisibility;
   maxMembers: number;
+  description?: string;
   passcode?: string;
   createdAt: number;
   updatedAt: number;

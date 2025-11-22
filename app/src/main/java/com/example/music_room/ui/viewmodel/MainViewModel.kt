@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.music_room.Album
 import com.example.music_room.data.AuroraServiceLocator
+import com.example.music_room.data.remote.model.PopularAlbumDto
 import com.example.music_room.data.remote.model.RoomSnapshotDto
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import com.example.music_room.utils.sanitizeArtistLabel
+import com.example.music_room.utils.sanitizeTrackTitle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 data class MainUiState(
     val isLoading: Boolean = false,
-    val trendingRoom: RoomSnapshotDto? = null,
+    val rooms: List<RoomSnapshotDto> = emptyList(),
     val popularAlbums: List<Album> = emptyList(),
     val error: String? = null,
     val isAlbumsLoading: Boolean = false
@@ -25,7 +25,6 @@ data class MainUiState(
 class MainViewModel : ViewModel() {
 
     private val repository = AuroraServiceLocator.repository
-    private val itunesApi = AuroraServiceLocator.itunesApi
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -36,22 +35,21 @@ class MainViewModel : ViewModel() {
 
     fun refreshData() {
         viewModelScope.launch {
-            loadTrendingRoom()
+            loadRooms()
             loadCuratedAlbums()
         }
     }
 
-    fun refreshTrendingRoom() {
+    fun refreshRooms() {
         viewModelScope.launch {
-            loadTrendingRoom()
+            loadRooms()
         }
     }
 
-    private suspend fun loadTrendingRoom() {
-        // We don't set global loading here to avoid flickering the whole screen if just refreshing room
+    private suspend fun loadRooms() {
         repository.getRooms()
             .onSuccess { rooms ->
-                _uiState.update { it.copy(trendingRoom = rooms.firstOrNull()) }
+                _uiState.update { it.copy(rooms = rooms) }
             }
             .onFailure { error ->
                 _uiState.update { it.copy(error = error.message) }
@@ -60,94 +58,33 @@ class MainViewModel : ViewModel() {
 
     private suspend fun loadCuratedAlbums() {
         _uiState.update { it.copy(isAlbumsLoading = true) }
-        
-        try {
-            val response = itunesApi.getTopAlbums()
-            val results = response.feed.results ?: emptyList()
-            
-            val albums = results.mapNotNull { result ->
-                if (result.name == null || result.artistName == null || result.artworkUrl100 == null) return@mapNotNull null
-                
-                // Get high-res image
-                val highResUrl = result.artworkUrl100.replace("100x100bb", "600x600bb")
-                
-                Album(
-                    title = result.name,
-                    artist = result.artistName,
-                    trackId = result.id ?: "",
-                    provider = "ITUNES",
-                    imageUrl = highResUrl,
-                    durationSeconds = 0,
-                    externalUrl = result.url ?: ""
-                )
-            }
 
-            if (albums.isNotEmpty()) {
+        repository.getPopularAlbums()
+            .onSuccess { response ->
+                val albums = response.albums.mapNotNull { it.toAlbum() }
                 _uiState.update { it.copy(popularAlbums = albums, isAlbumsLoading = false) }
-            } else {
-                 loadFallbackCuratedAlbums()
             }
-        } catch (e: Exception) {
-             e.printStackTrace()
-             loadFallbackCuratedAlbums()
-        }
+            .onFailure { error ->
+                error.printStackTrace()
+                _uiState.update { it.copy(isAlbumsLoading = false, error = error.message) }
+            }
     }
 
-    private suspend fun loadFallbackCuratedAlbums() {
-        val curatedQueries = listOf(
-            "The Weeknd After Hours",
-            "Taylor Swift Midnights",
-            "SZA SOS",
-            "Harry Styles Harry's House",
-            "Bad Bunny Un Verano Sin Ti",
-            "Olivia Rodrigo GUTS",
-            "Drake For All The Dogs",
-            "Beyonce Renaissance",
-            "Kendrick Lamar Mr. Morale",
-            "Billie Eilish Hit Me Hard and Soft"
+    private fun PopularAlbumDto.toAlbum(): Album? {
+    val sanitizedTitle = title.takeIf { it.isNotBlank() }?.sanitizeTrackTitle() ?: return null
+    val sanitizedArtist = artist.takeIf { it.isNotBlank() } ?: return null
+    val displayArtist = sanitizedArtist.sanitizeArtistLabel().ifBlank { sanitizedArtist }
+        val sanitizedImage = imageUrl?.takeIf { it.isNotBlank() } ?: return null
+
+        return Album(
+            title = sanitizedTitle,
+            artist = displayArtist,
+            trackId = id,
+            provider = "LASTFM",
+            imageUrl = sanitizedImage,
+            durationSeconds = 0,
+            externalUrl = externalUrl
         )
-
-        val albums = mutableListOf<Album>()
-
-        try {
-            // Parallel fetching for ultra-fast loading
-            val deferredResults = curatedQueries.map { query ->
-                viewModelScope.async(Dispatchers.IO) {
-                    try {
-                        itunesApi.searchAlbums(query).results.firstOrNull()
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-            }
-
-            val results = deferredResults.awaitAll()
-
-            results.filterNotNull().forEach { track ->
-                // Get high-res image by replacing 100x100 with 600x600
-                val highResUrl = track.artworkUrl100.replace("100x100bb", "600x600bb")
-                
-                albums.add(
-                    Album(
-                        title = track.collectionName,
-                        artist = track.artistName,
-                        trackId = track.collectionId.toString(),
-                        provider = "ITUNES",
-                        imageUrl = highResUrl,
-                        durationSeconds = 0,
-                        externalUrl = ""
-                    )
-                )
-            }
-
-            if (albums.isNotEmpty()) {
-                _uiState.update { it.copy(popularAlbums = albums, isAlbumsLoading = false) }
-            } else {
-                 _uiState.update { it.copy(isAlbumsLoading = false) }
-            }
-        } catch (e: Exception) {
-             _uiState.update { it.copy(isAlbumsLoading = false) }
-        }
     }
 
     companion object {

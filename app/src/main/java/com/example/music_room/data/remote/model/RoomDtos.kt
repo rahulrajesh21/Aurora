@@ -9,6 +9,7 @@ data class RoomDto(
     @Json(name = "hostName") val hostName: String,
     @Json(name = "visibility") val visibility: String,
     @Json(name = "maxMembers") val maxMembers: Int,
+    @Json(name = "description") val description: String? = null,
     @Json(name = "passcode") val passcode: String? = null,
     @Json(name = "createdAt") val createdAt: Long,
     @Json(name = "updatedAt") val updatedAt: Long
@@ -42,6 +43,7 @@ data class RoomInviteDto(
 data class CreateRoomRequestDto(
     @Json(name = "name") val name: String,
     @Json(name = "hostName") val hostName: String,
+    @Json(name = "description") val description: String? = null,
     @Json(name = "visibility") val visibility: String = "PUBLIC",
     @Json(name = "passcode") val passcode: String? = null
 )

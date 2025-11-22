@@ -18,9 +18,10 @@ async function bootstrap(): Promise<void> {
     app.use(express.json());
 
     const container = await ServiceContainer.initialize();
-  const streamingService = container.getStreamingService();
-  const roomManager = container.getRoomManager();
-  const lyricsService = container.getLyricsService();
+    const streamingService = container.getStreamingService();
+    const roomManager = container.getRoomManager();
+    const lyricsService = container.getLyricsService();
+    const popularAlbumsService = container.getPopularAlbumsService();
     const config = container.getConfig();
 
     logger.info(
@@ -38,7 +39,7 @@ async function bootstrap(): Promise<void> {
       res.json({ status: 'ok' });
     });
 
-  registerHttpRoutes(app, streamingService, roomManager, lyricsService);
+    registerHttpRoutes(app, streamingService, roomManager, lyricsService, popularAlbumsService);
 
     const server = http.createServer(app);
     registerWebSocketRoutes(server, container);

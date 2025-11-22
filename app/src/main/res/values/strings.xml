@@ -27,6 +27,7 @@
     <string name="track_added">Track added to queue</string>
     <string name="hosted_by_template">Hosted by %1$s</string>
     <string name="rooms_empty">No rooms available</string>
+    <string name="popular_albums_empty">No trending music yet. Check back soon!</string>
     <string name="room_created_toast">Room created! Code: %1$s</string>
     <string name="create_room_vibe_preview_default">Select a vibe to preview</string>
     <string name="create_room_vibe_preview">Vibe: %1$s</string>

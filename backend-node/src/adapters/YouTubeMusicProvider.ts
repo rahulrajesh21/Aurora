@@ -31,6 +31,18 @@ interface YouTubeSearchItem {
       default: {
         url: string;
       };
+      maxres?: {
+        url: string;
+      };
+      high?: {
+        url: string;
+      };
+      medium?: {
+        url: string;
+      };
+      standard?: {
+        url: string;
+      };
     };
   };
 }
@@ -48,6 +60,18 @@ interface YouTubeVideoItem {
       default: {
         url: string;
       };
+      maxres?: {
+        url: string;
+      };
+      high?: {
+        url: string;
+      };
+      medium?: {
+        url: string;
+      };
+      standard?: {
+        url: string;
+      };
     };
   };
   contentDetails: {
@@ -58,7 +82,7 @@ interface YouTubeVideoItem {
 export class YouTubeMusicProvider implements MusicProvider {
   public readonly providerType = ProviderType.YOUTUBE;
 
-  constructor(private readonly apiKey: string) {}
+  constructor(private readonly apiKey: string) { }
 
   async isAvailable(): Promise<boolean> {
     return this.apiKey.length > 0;
@@ -176,8 +200,14 @@ export class YouTubeMusicProvider implements MusicProvider {
     try {
       const videoId = item?.id?.videoId;
       const title = item?.snippet?.title;
-      const artist = item?.snippet?.channelTitle;
-      const thumbnail = item?.snippet?.thumbnails?.default?.url;
+      const artist = item?.snippet?.channelTitle?.replace(/\s*-\s*Topic\s*$/i, '');
+      const thumbnails = item?.snippet?.thumbnails;
+      const thumbnail =
+        thumbnails?.maxres?.url ||
+        thumbnails?.standard?.url ||
+        thumbnails?.high?.url ||
+        thumbnails?.medium?.url ||
+        thumbnails?.default?.url;
       if (!videoId || !title || !artist) {
         logger.warn({ videoId, title, artist }, 'Skipping search item missing mandatory fields');
         return null;
@@ -202,10 +232,15 @@ export class YouTubeMusicProvider implements MusicProvider {
     return {
       id: item.id,
       title: item.snippet.title,
-      artist: item.snippet.channelTitle,
+      artist: item.snippet.channelTitle.replace(/\s*-\s*Topic\s*$/i, ''),
       durationSeconds: duration,
       provider: ProviderType.YOUTUBE,
-      thumbnailUrl: item.snippet.thumbnails.default.url,
+      thumbnailUrl:
+        item.snippet.thumbnails.maxres?.url ||
+        item.snippet.thumbnails.standard?.url ||
+        item.snippet.thumbnails.high?.url ||
+        item.snippet.thumbnails.medium?.url ||
+        item.snippet.thumbnails.default.url,
       externalUrl: `https://www.youtube.com/watch?v=${item.id}`,
     };
   }

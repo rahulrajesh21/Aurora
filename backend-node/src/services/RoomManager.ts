@@ -13,6 +13,7 @@ import { logger } from '../utils/logger';
 export interface CreateRoomInput {
   name: string;
   hostName: string;
+  description?: string;
   visibility?: RoomVisibility;
   passcode?: string;
 }
@@ -42,7 +43,7 @@ export class RoomManager {
   private readonly invites = new Map<string, RoomInvite[]>();
   private readonly contexts = new Map<string, RoomContext>();
 
-  constructor(private readonly storage: RoomStorage, private readonly config: RoomConfig) {}
+  constructor(private readonly storage: RoomStorage, private readonly config: RoomConfig) { }
 
   static create(config: AppConfig, storage: RoomStorage): RoomManager {
     return new RoomManager(storage, config.rooms);
@@ -78,6 +79,7 @@ export class RoomManager {
         name: trimmedName,
         hostId: uuid(),
         hostName,
+        description: input.description?.trim() || undefined,
         visibility: input.visibility ?? RoomVisibility.PUBLIC,
         maxMembers: this.config.maxMembers,
         passcode: input.passcode?.trim() || undefined,

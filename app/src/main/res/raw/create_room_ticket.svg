@@ -1,0 +1,58 @@
+<svg width="200" height="200" viewBox="0 0 84 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 1. NOISE FILTER (Strictly Grayscale) -->
+    <filter id="noiseFilter">
+      <!-- Generate noise -->
+      <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" stitchTiles="stitch" result="noise"/>
+      <!-- DESATURATE: Removes all rainbow colors -->
+      <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+      <!-- CONTRAST: Cranks up the contrast to make it look like binary pixel ink -->
+      <feComponentTransfer in="grayNoise">
+        <feFuncR type="linear" slope="3" intercept="-1"/>
+        <feFuncG type="linear" slope="3" intercept="-1"/>
+        <feFuncB type="linear" slope="3" intercept="-1"/>
+      </feComponentTransfer>
+    </filter>
+
+    <!-- 2. TEXTURE MASK -->
+    <!-- This mask applies the noise to whatever shape uses it -->
+    <mask id="ink-texture-mask">
+      <!-- White base (visible) -->
+      <rect width="84" height="40" fill="white"/>
+      <!-- Black noise (erased parts) -->
+      <rect width="84" height="40" fill="black" opacity="0.08" filter="url(#noiseFilter)"/>
+    </mask>
+  </defs>
+
+  <!-- BACKGROUND: Paper Color -->
+  <rect width="84" height="40" fill="#FFFFFF" />
+
+  <!-- TICKET GROUP -->
+  <!-- We apply the mask here. The fill is pure black, so no colors can exist. -->
+  <g mask="url(#ink-texture-mask)" shape-rendering="crispEdges">
+    
+    <!-- The Ticket Shape -->
+  <path d="M2,0 L82,0 
+       A2,2 0 0 1 84,2 
+       V14 A6,6 0 0 0 84,26 
+       V38 A2,2 0 0 1 82,40 
+       H2 A2,2 0 0 1 0,38 
+       V26 A6,6 0 0 0 0,14 
+       V2 A2,2 0 0 1 2,0 Z" 
+          fill="#111111" />
+
+    <!-- Dashed Perforation Line (White Stroke cuts through the black) -->
+  <line x1="42" y1="2" x2="42" y2="38" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="3 2" />
+
+    <!-- ICONS (White/Paper Color) -->
+  <g fill="#FFFFFF">
+      <!-- Door Icon (Left) -->
+      <path d="M18,10 V30 H32 V10 H18 M20,12 H30 V30 H20 V12" />
+      <polygon points="30,12 24,14 24,30 30,30" />
+      
+      <!-- Plus Symbol (Right) -->
+      <rect x="52" y="16" width="16" height="8" rx="1" />
+      <rect x="56" y="12" width="8" height="16" rx="1" />
+    </g>
+  </g>
+</svg>

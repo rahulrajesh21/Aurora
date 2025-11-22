@@ -80,3 +80,5 @@ lint/tmp/
 backend-node/node_modules/
 node_modules/
 backend-node/dist/
+better-lyrics/
+test.py

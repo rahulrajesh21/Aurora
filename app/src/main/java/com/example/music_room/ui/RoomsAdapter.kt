@@ -3,11 +3,14 @@ package com.example.music_room.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.example.music_room.R
 import com.example.music_room.data.remote.model.RoomSnapshotDto
+import com.example.music_room.utils.displayArtist
+import com.example.music_room.utils.displayTitle
 
 class RoomsAdapter(
     private val onRoomSelected: (RoomSnapshotDto) -> Unit
@@ -36,26 +39,66 @@ class RoomsAdapter(
 
     class RoomViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val roomName: TextView = view.findViewById(R.id.roomName)
-        private val hostName: TextView = view.findViewById(R.id.hostName)
-        private val listenerCount: TextView = view.findViewById(R.id.listenerCount)
-        private val currentSong: TextView = view.findViewById(R.id.currentSong)
-        private val currentArtist: TextView = view.findViewById(R.id.currentArtist)
-        private val liveIndicator: View = view.findViewById(R.id.liveIndicator)
+        private val songTitle: TextView = view.findViewById(R.id.songTitle)
+        private val artistName: TextView = view.findViewById(R.id.artistName)
+        private val memberCount: TextView = view.findViewById(R.id.memberCount)
+        private val roomImage: ImageView = view.findViewById(R.id.roomImage)
 
         fun bind(snapshot: RoomSnapshotDto) {
             roomName.text = snapshot.room.name
-            hostName.text = view.context.getString(R.string.hosted_by_template, snapshot.room.hostName)
-            listenerCount.text = snapshot.memberCount.toString()
+            
             val playingTrack = snapshot.nowPlaying?.currentTrack ?: snapshot.nowPlaying?.queue?.firstOrNull()
-            currentSong.text = playingTrack?.title ?: view.context.getString(R.string.no_track_playing)
-            currentArtist.text = playingTrack?.artist ?: view.context.getString(R.string.no_track_artist)
+            
+            if (playingTrack != null) {
+                songTitle.text = playingTrack.displayTitle()
+                val artistLabel = playingTrack.displayArtist().ifBlank { playingTrack.artist }
+                artistName.text = artistLabel
+                songTitle.visibility = View.VISIBLE
+                artistName.visibility = View.VISIBLE
+            } else {
+                songTitle.text = " " // Maintain height
+                songTitle.visibility = View.VISIBLE
+                artistName.text = "Nothing playing"
+                artistName.visibility = View.VISIBLE
+            }
 
-            // Pulse animation
-            val pulseAnimator = android.animation.AnimatorInflater.loadAnimator(view.context, R.animator.pulse)
-            pulseAnimator.setTarget(liveIndicator)
-            pulseAnimator.start()
+            memberCount.text = snapshot.memberCount.toString()
+
+            // Image Logic
+            val vibeName = snapshot.room.description
+            val vibeDrawable = getVibeDrawable(vibeName)
+
+            if (vibeDrawable != null) {
+                roomImage.setImageResource(vibeDrawable)
+                roomImage.scaleType = ImageView.ScaleType.FIT_CENTER
+                roomImage.setPadding(8, 8, 8, 8)
+                roomImage.setBackgroundColor(android.graphics.Color.WHITE) // White background for vibe
+            } else {
+                // Custom or No Vibe -> Use Album Art
+                roomImage.setPadding(0, 0, 0, 0)
+                roomImage.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                roomImage.scaleType = ImageView.ScaleType.CENTER_CROP
+                
+                if (playingTrack?.thumbnailUrl != null) {
+                    roomImage.load(playingTrack.thumbnailUrl) {
+                        placeholder(R.drawable.album_placeholder)
+                        error(R.drawable.album_placeholder)
+                    }
+                } else {
+                    roomImage.setImageResource(R.drawable.album_placeholder)
+                }
+            }
         }
 
-        private val view: View = itemView
+        private fun getVibeDrawable(vibeName: String?): Int? {
+            return when (vibeName) {
+                "Chill" -> R.drawable.chill
+                "Main Character" -> R.drawable.main_character
+                "Questioning Life" -> R.drawable.questioning_life
+                "Trippin" -> R.drawable.trippin
+                "Vibin" -> R.drawable.vibin
+                else -> null // Custom or unknown -> Use Album Art
+            }
+        }
     }
 }
