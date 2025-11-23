@@ -232,7 +232,8 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
       });
 
       if (!response.ok) {
-        logger.warn({ status: response.status, trackId }, 'Failed to fetch track from YT Music');
+        const errorText = await response.text();
+        logger.warn({ status: response.status, trackId, errorText }, 'Failed to fetch track from YT Music API');
         return null;
       }
 
@@ -248,9 +249,11 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
     return this.withRetry('getStreamUrl', async () => {
       const track = await this.getTrack(trackId);
       if (!track) {
+        logger.error({ trackId }, 'Failed to fetch track metadata from YouTube Music API');
         throw new TrackNotFoundError(trackId, ProviderType.YOUTUBE);
       }
 
+      logger.info({ trackId, trackTitle: track.title }, 'Track metadata fetched, extracting stream URL with yt-dlp');
       const streamUrl = await this.extractStreamUrl(trackId);
       if (!streamUrl) {
         throw new ProviderError(ProviderType.YOUTUBE, 'Failed to extract stream URL');
