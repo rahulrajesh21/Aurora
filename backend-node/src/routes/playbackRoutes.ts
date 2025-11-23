@@ -11,6 +11,7 @@ import {
 } from '../models/StreamingError';
 import { StreamingService } from '../services/StreamingService';
 import { createError } from './types';
+import { StreamProxyController } from '../controllers/StreamProxyController';
 import { logger } from '../utils/logger';
 
 interface PlayRequest {
@@ -91,21 +92,9 @@ export function createPlaybackRoutes(streamingService: StreamingService): Router
     }
   });
 
-  router.get('/api/playback/stream/:trackId', async (req: Request, res: Response) => {
-    const { trackId } = req.params;
-    if (!trackId) {
-      res.status(400).json(createError('INVALID_REQUEST', 'Track ID is required'));
-      return;
-    }
+  const streamProxyController = new StreamProxyController(streamingService);
 
-    try {
-      const streamUrl = await streamingService.resolveStreamUrl(trackId);
-      res.redirect(streamUrl);
-    } catch (error) {
-      logger.error({ error }, 'Failed to fetch stream URL');
-      res.status(503).json(createError('STREAM_ERROR', 'Failed to get stream URL'));
-    }
-  });
+  router.get('/api/playback/stream/:trackId', streamProxyController.streamAudio);
 
   router.get('/api/playback/stream/:trackId/info', async (req: Request, res: Response) => {
     const { trackId } = req.params;
