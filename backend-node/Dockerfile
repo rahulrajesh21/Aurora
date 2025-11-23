@@ -3,7 +3,7 @@ FROM node:22-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip make g++ && \
+    apt-get install -y python3 python3-pip make g++ git && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -31,14 +31,18 @@ RUN apt-get update && \
     python3-pip \
     ffmpeg \
     ca-certificates \
-    curl && \
+    curl \
+    git && \
     rm -rf /var/lib/apt/lists/*
 
 # Install yt-dlp and pot provider plugin (Python)
 RUN pip3 install --no-cache-dir --break-system-packages yt-dlp bgutil-ytdlp-pot-provider
 
-# Install pot provider server (Node.js)
-RUN npm install -g bgutil-ytdlp-pot-provider
+# Install pot provider server (Node.js) from source
+WORKDIR /opt
+RUN git clone https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git
+WORKDIR /opt/bgutil-ytdlp-pot-provider/server
+RUN npm install && npm run build
 
 # Create app directory
 WORKDIR /app
@@ -52,7 +56,8 @@ COPY --from=builder /app/dist ./dist
 
 # Create non-root user with home directory for cache
 RUN groupadd -r nodejs && useradd -r -g nodejs -m -d /home/nodejs nodejs && \
-    chown -R nodejs:nodejs /app
+    chown -R nodejs:nodejs /app && \
+    chown -R nodejs:nodejs /opt/bgutil-ytdlp-pot-provider
 
 # Switch to non-root user
 USER nodejs

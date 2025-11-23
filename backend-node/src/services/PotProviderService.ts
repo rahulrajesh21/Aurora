@@ -28,8 +28,8 @@ export class PotProviderService {
             logger.info({ port: this.port }, 'Starting bgutil-pot server...');
 
             // Spawn the bgutil-pot server (Node.js version)
-            // Installed globally via npm
-            this.process = spawn('bgutil-ytdlp-pot-provider', ['server', '--port', this.port.toString()], {
+            // Running from source installed in /opt/bgutil-ytdlp-pot-provider/server
+            this.process = spawn('node', ['/opt/bgutil-ytdlp-pot-provider/server/build/main.js', '--port', this.port.toString()], {
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
 
