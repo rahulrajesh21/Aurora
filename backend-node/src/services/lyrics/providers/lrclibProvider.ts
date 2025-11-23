@@ -15,7 +15,9 @@ async function requestLrclib(params: LyricsRequest, signal: AbortSignal): Promis
   if (params.album) {
     url.searchParams.append('album_name', params.album);
   }
-  url.searchParams.append('duration', String(params.durationMs));
+  // LRClib expects duration in seconds, not milliseconds
+  const durationSeconds = Math.round(params.durationMs / 1000);
+  url.searchParams.append('duration', String(durationSeconds));
 
   const response = await fetch(url.toString(), {
     headers: {

@@ -8,5 +8,9 @@ export const NO_LYRICS_TEXT = 'No lyrics found for this song';
 export const PROVIDER_PRIORITY = [
   'bLyrics-richsynced',
   'bLyrics-synced',
+  'lrclib-synced',
+  'yt-captions',
+  'lrclib-plain',
+  'yt-lyrics',
 ] as const;
 export type ProviderKey = (typeof PROVIDER_PRIORITY)[number];
