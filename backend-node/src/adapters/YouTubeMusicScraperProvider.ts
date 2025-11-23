@@ -417,12 +417,13 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
       });
 
       process.on('error', (error: Error) => {
+        logger.error({ error, trackId }, 'yt-dlp spawn error - command not found or failed to execute');
         reject(new ProviderError(ProviderType.YOUTUBE, 'yt-dlp spawn error', error));
       });
 
       process.on('close', (code: number | null) => {
         if (code !== 0 || !stdout.trim()) {
-          logger.error({ stderr }, 'yt-dlp failed');
+          logger.error({ stderr, stdout, code, trackId }, 'yt-dlp failed to extract stream URL');
           reject(new ProviderError(ProviderType.YOUTUBE, 'Failed to extract stream URL', stderr));
           return;
         }
