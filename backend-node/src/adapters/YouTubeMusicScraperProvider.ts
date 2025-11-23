@@ -431,6 +431,8 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
         '--no-playlist',
         '--geo-bypass',
         '--force-ipv4',
+        // Use Node.js as JavaScript runtime (required for YouTube as of Nov 2024)
+        '--exec-runtime', 'node',
       ];
 
       // Add user-agent
@@ -478,7 +480,7 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
       // Add other headers and options
       args.push(
         '--add-header', 'Accept-Language:en-US,en;q=0.9',
-        '--extractor-args', 'youtube:player_client=android,web',
+        '--extractor-args', 'youtube:player_client=web,ios',
         '--no-check-certificates',
         `https://www.youtube.com/watch?v=${trackId}`
       );
