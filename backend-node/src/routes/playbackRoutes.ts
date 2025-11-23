@@ -106,7 +106,9 @@ export function createPlaybackRoutes(streamingService: StreamingService): Router
     try {
       // Return the proxy URL instead of the raw stream URL
       // The client should use this URL to stream audio through our backend proxy
-      const proxyUrl = `${req.protocol}://${req.get('host')}/api/playback/stream/${trackId}`;
+      // Always use https in production (Railway forwards http->https but req.protocol stays 'http')
+      const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
+      const proxyUrl = `${protocol}://${req.get('host')}/api/playback/stream/${trackId}`;
       res.json({ streamUrl: proxyUrl });
     } catch (error) {
       logger.error({ error }, 'Failed to fetch stream URL info');
