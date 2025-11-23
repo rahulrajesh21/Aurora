@@ -4,6 +4,8 @@ TypeScript/Express backend that powers the Aurora streaming app. This implementa
 
 ## Getting Started
 
+### Development (Local)
+
 ```bash
 npm install
 npm run build
@@ -11,6 +13,24 @@ npm start
 ```
 
 Use `npm run dev` for hot reload via `ts-node-dev`.
+
+### Docker (Recommended for Production)
+
+```bash
+# Copy and edit environment variables
+cp .env.example .env
+
+# Start with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+**See [DOCKER_DEPLOY.md](./DOCKER_DEPLOY.md) for full deployment guide** (Railway, Fly.io, DigitalOcean).
 
 ## Configuration
 

@@ -416,12 +416,16 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
         '-f', 'bestaudio',
         '--get-url',
         '--no-playlist',
+        '--geo-bypass',
+        '--force-ipv4',
         '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         '--add-header', 'Accept-Language:en-US,en;q=0.9',
-        '--extractor-args', 'youtube:player_client=android',
+        '--extractor-args', 'youtube:player_client=android,web',
+        '--no-check-certificates',
         `https://www.youtube.com/watch?v=${trackId}`
       ];
       
+      logger.info({ trackId, args: args.join(' ') }, 'Executing yt-dlp command');
       const process = spawn('yt-dlp', args);
 
       let stdout = '';
