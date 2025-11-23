@@ -572,9 +572,9 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
     args.push(
       '--add-header', 'Accept-Language:en-US,en;q=0.9',
       // Use default client as recommended by yt-dlp for avoiding bot detection
-      '--extractor-args', 'youtube:player_client=default,ios,android',
+      '--extractor-args', 'youtube:player_client=default',
       // Enable JavaScript runtime support (uses Node.js)
-      '--js-runtimes', '/usr/local/bin/node',
+      '--js-runtimes', 'node',
       // Allow downloading remote JavaScript challenge solver from GitHub
       '--remote-components', 'ejs:github',
       '--no-check-certificates',
