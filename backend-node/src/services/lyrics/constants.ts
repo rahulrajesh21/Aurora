@@ -7,10 +7,6 @@ export const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const NO_LYRICS_TEXT = 'No lyrics found for this song';
 export const PROVIDER_PRIORITY = [
   'bLyrics-richsynced',
-  'yt-captions',
-  'lrclib-synced',
   'bLyrics-synced',
-  'yt-lyrics',
-  'lrclib-plain',
 ] as const;
 export type ProviderKey = (typeof PROVIDER_PRIORITY)[number];
