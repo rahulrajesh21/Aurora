@@ -1,5 +1,6 @@
 [phases.setup]
-aptPkgs = ["python3", "python3-pip", "ffmpeg"]
+nixPkgs = ["nodejs_20", "python3", "python3-pip", "ffmpeg"]
+aptPkgs = []
 
 [phases.install]
 cmds = [

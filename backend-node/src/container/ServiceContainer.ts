@@ -48,7 +48,7 @@ export class ServiceContainer {
     this.config = loadConfig();
     const roomStorage = this.createRoomStorage();
     this.providers = new Map([
-      [ProviderType.YOUTUBE, new YouTubeMusicScraperProvider(this.config.youtube.apiKey)],
+      [ProviderType.YOUTUBE, new YouTubeMusicScraperProvider(this.config.youtube.apiKey, this.config.youtube)],
     ]);
     this.webSocketManager = new WebSocketManager();
     this.roomManager = RoomManager.create(this.config, roomStorage);

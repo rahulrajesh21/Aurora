@@ -12,6 +12,12 @@ export interface YouTubeConfig {
   apiKey: string;
   searchTimeout: number;
   searchLimit: number;
+  ytdlp?: {
+    cookiesPath?: string;
+    poToken?: string;
+    visitorData?: string;
+    userAgent?: string;
+  };
 }
 
 export interface QueueConfig {
@@ -103,6 +109,10 @@ const DEFAULTS: AppConfig = {
     apiKey: '',
     searchTimeout: 2000,
     searchLimit: 20,
+    ytdlp: {
+      cookiesPath: './cookies.txt',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    },
   },
   queue: {
     maxSize: 100,
@@ -197,6 +207,12 @@ export function loadConfig(): AppConfig {
       apiKey: youtubeApiKey,
       searchTimeout: Number(process.env.YOUTUBE_SEARCH_TIMEOUT ?? streaming.youtube?.searchTimeout ?? DEFAULTS.youtube.searchTimeout),
       searchLimit: Number(process.env.YOUTUBE_SEARCH_LIMIT ?? streaming.youtube?.searchLimit ?? DEFAULTS.youtube.searchLimit),
+      ytdlp: {
+        cookiesPath: String(process.env.YTDLP_COOKIES_PATH ?? streaming.youtube?.ytdlp?.cookiesPath ?? DEFAULTS.youtube.ytdlp?.cookiesPath ?? './cookies.txt'),
+        poToken: process.env.YT_PO_TOKEN ?? streaming.youtube?.ytdlp?.poToken,
+        visitorData: process.env.YT_VISITOR_DATA ?? streaming.youtube?.ytdlp?.visitorData,
+        userAgent: String(process.env.YTDLP_USER_AGENT ?? streaming.youtube?.ytdlp?.userAgent ?? DEFAULTS.youtube.ytdlp?.userAgent ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'),
+      },
     },
     queue: {
       maxSize: Number(process.env.QUEUE_MAX_SIZE ?? streaming.queue?.maxSize ?? DEFAULTS.queue.maxSize),

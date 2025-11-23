@@ -10,6 +10,9 @@ import {
 } from '../models/StreamingError';
 import { logger } from '../utils/logger';
 import { spawn } from 'node:child_process';
+import { AppConfig } from '../config/appConfig';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const YT_MUSIC_BASE = 'https://music.youtube.com/youtubei/v1';
 const MAX_RETRIES = 2;
@@ -138,11 +141,21 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
   private readonly context: YTMusicContext;
   private readonly webContext: YTMusicContext;
   private readonly apiKey: string;
+  private readonly config: AppConfig['youtube'];
 
-  constructor(youtubeApiKey?: string) {
+  constructor(youtubeApiKey?: string, config?: AppConfig['youtube']) {
     // Use environment variable or fallback to default key
     // Default key is from YouTube Music web app (public but may be rate-limited)
     this.apiKey = youtubeApiKey || process.env.YOUTUBE_INNERTUBE_API_KEY || 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
+    this.config = config || {
+      apiKey: this.apiKey,
+      searchTimeout: 2000,
+      searchLimit: 20,
+      ytdlp: {
+        cookiesPath: './cookies.txt',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    };
     
     // Use ANDROID_MUSIC client for stream URL extraction (better for avoiding signature issues)
     this.context = {
@@ -411,40 +424,85 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
 
   private extractStreamUrl(trackId: string): Promise<string | null> {
     return new Promise((resolve, reject) => {
-      // Add arguments to bypass YouTube restrictions
+      // Build yt-dlp arguments with cookies, PO token, and user-agent
       const args = [
         '-f', 'bestaudio',
         '--get-url',
         '--no-playlist',
         '--geo-bypass',
         '--force-ipv4',
-        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      ];
+
+      // Add user-agent
+      const userAgent = this.config.ytdlp?.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      args.push('--user-agent', userAgent);
+
+      // Add cookies from environment variable or file
+      const cookiesFromEnv = process.env.YTDLP_COOKIES;
+      if (cookiesFromEnv) {
+        // Write cookies from env to temporary file
+        const tempCookiesPath = path.join(process.cwd(), '.cookies-temp.txt');
+        try {
+          fs.writeFileSync(tempCookiesPath, cookiesFromEnv, 'utf-8');
+          args.push('--cookies', tempCookiesPath);
+          logger.info('Using cookies from YTDLP_COOKIES environment variable');
+        } catch (error) {
+          logger.error({ error }, 'Failed to write cookies from environment variable');
+        }
+      } else {
+        // Fallback to cookies file path
+        const cookiesPath = this.config.ytdlp?.cookiesPath;
+        if (cookiesPath) {
+          const resolvedCookiesPath = path.resolve(process.cwd(), cookiesPath);
+          if (fs.existsSync(resolvedCookiesPath)) {
+            args.push('--cookies', resolvedCookiesPath);
+            logger.info({ cookiesPath: resolvedCookiesPath }, 'Using cookies file for yt-dlp');
+          } else {
+            logger.warn({ cookiesPath: resolvedCookiesPath }, 'Cookies file not found, proceeding without cookies');
+          }
+        }
+      }
+
+      // Add PO token if available
+      if (this.config.ytdlp?.poToken) {
+        args.push('--extractor-args', `youtube:po_token=${this.config.ytdlp.poToken}`);
+        logger.info('Using PO token for yt-dlp');
+      }
+
+      // Add visitor data if available
+      if (this.config.ytdlp?.visitorData) {
+        args.push('--extractor-args', `youtube:visitor_data=${this.config.ytdlp.visitorData}`);
+        logger.info('Using visitor data for yt-dlp');
+      }
+
+      // Add other headers and options
+      args.push(
         '--add-header', 'Accept-Language:en-US,en;q=0.9',
         '--extractor-args', 'youtube:player_client=android,web',
         '--no-check-certificates',
         `https://www.youtube.com/watch?v=${trackId}`
-      ];
+      );
       
-      logger.info({ trackId, args: args.join(' ') }, 'Executing yt-dlp command');
-      const process = spawn('yt-dlp', args);
+      logger.info({ trackId, args: args.join(' ') }, 'Executing yt-dlp command with anti-bot measures');
+      const ytdlpProcess = spawn('yt-dlp', args);
 
       let stdout = '';
       let stderr = '';
 
-      process.stdout.on('data', (chunk: Buffer) => {
+      ytdlpProcess.stdout.on('data', (chunk: Buffer) => {
         stdout += chunk.toString();
       });
 
-      process.stderr.on('data', (chunk: Buffer) => {
+      ytdlpProcess.stderr.on('data', (chunk: Buffer) => {
         stderr += chunk.toString();
       });
 
-      process.on('error', (error: Error) => {
+      ytdlpProcess.on('error', (error: Error) => {
         logger.error({ error, trackId }, 'yt-dlp spawn error - command not found or failed to execute');
         reject(new ProviderError(ProviderType.YOUTUBE, 'yt-dlp spawn error', error));
       });
 
-      process.on('close', (code: number | null) => {
+      ytdlpProcess.on('close', (code: number | null) => {
         if (code !== 0 || !stdout.trim()) {
           logger.error({ stderr, stdout, code, trackId }, 'yt-dlp failed to extract stream URL');
           reject(new ProviderError(ProviderType.YOUTUBE, 'Failed to extract stream URL', stderr));
