@@ -236,7 +236,7 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
       const url = `${YT_MUSIC_BASE}/player?key=${this.apiKey}`;
 
       const body = {
-        context: this.webContext, // Use WEB_REMIX for track metadata
+        context: this.context, // Use ANDROID_MUSIC for track metadata (more reliable)
         videoId: trackId,
       };
 
