@@ -47,9 +47,6 @@ class MediaServiceManager private constructor(private val context: Context) {
      * Stop background playback service
      */
     fun stopPlaybackService() {
-        // Stop playback in the service first
-        boundService?.stopPlayback()
-        
         unbindFromService()
         
         mediaControllerFuture?.let { future ->

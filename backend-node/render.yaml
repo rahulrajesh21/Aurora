@@ -6,7 +6,7 @@ services:
     region: oregon
     plan: free
     buildCommand: ./render-build.sh
-    startCommand: npm start
+    startCommand: ./render-start.sh
     envVars:
       - key: NODE_ENV
         value: production

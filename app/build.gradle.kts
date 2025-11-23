@@ -15,8 +15,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8080\"")
-        buildConfigField("String", "BACKEND_WS_URL", "\"ws://10.0.2.2:8080\"")
+        buildConfigField("String", "BACKEND_BASE_URL", "\"https://aurora-yt4q.onrender.com\"")
+        buildConfigField("String", "BACKEND_WS_URL", "\"wss://aurora-yt4q.onrender.com\"")
     }
 
     buildTypes {

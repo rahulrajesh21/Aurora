@@ -585,7 +585,7 @@ class RoomDetailActivity : AppCompatActivity() {
         if (viewModel.uiState.value.playbackState?.isPlaying == true) {
             // Use faster updates (100ms) for rich-sync word-by-word animation
             // Fallback to line-sync (1s) if rich-sync not available
-            val lyrics = syncedLyrics
+            val lyrics = lyricsManager.syncedLyrics
             val hasRichSync = lyrics?.syncType == com.example.music_room.data.repository.SyncType.RICH_SYNC &&
                     lyrics.lines.any { it.parts.isNotEmpty() }
             
@@ -607,7 +607,7 @@ class RoomDetailActivity : AppCompatActivity() {
         if (!state.isPlaying || sliderBeingDragged) return
         
         val duration = state.currentTrack?.durationSeconds?.takeIf { it > 0 }
-            ?: binding.playbackSlider.valueTo.toInt().coerceAtLeast(1)
+            ?: binding.playbackSlider.max.coerceAtLeast(1)
         
         // Calculate position with high precision for lyrics
         val currentTimeMs = System.currentTimeMillis()
@@ -646,7 +646,7 @@ class RoomDetailActivity : AppCompatActivity() {
     }
     
     private fun updateLyricsForPositionMs(positionMs: Long, immediate: Boolean) {
-        val lyrics = syncedLyrics ?: return
+        val lyrics = lyricsManager.syncedLyrics ?: return
         if (lyrics.lines.isEmpty()) return
 
         val index = lyricsAdapter.updatePlaybackPosition(positionMs)
