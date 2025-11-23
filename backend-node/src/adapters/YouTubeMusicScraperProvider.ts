@@ -229,36 +229,65 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
   }
 
   /**
-   * Get track details using YouTube Music player endpoint
+   * Get track details using yt-dlp directly
+   * Skip the YouTube Music API since it's unreliable
    */
   async getTrack(trackId: string): Promise<Track | null> {
     return this.withRetry('getTrack', async () => {
-      const url = `${YT_MUSIC_BASE}/player?key=${this.apiKey}`;
+      logger.info({ trackId }, 'Fetching track metadata via yt-dlp');
+      return this.getTrackFromYtDlp(trackId);
+    });
+  }
 
-      const body = {
-        context: this.context, // Use ANDROID_MUSIC for track metadata (more reliable)
-        videoId: trackId,
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': 'https://music.youtube.com/',
-          'Origin': 'https://music.youtube.com',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.warn({ status: response.status, trackId, errorText }, 'Failed to fetch track from YT Music API');
-        return null;
+  private async getTrackFromYtDlp(trackId: string): Promise<Track | null> {
+    return new Promise((resolve) => {
+      const args = this.buildYtDlpArgs(trackId);
+      // Replace --get-url with --dump-json
+      const getUrlIndex = args.indexOf('--get-url');
+      if (getUrlIndex !== -1) {
+        args[getUrlIndex] = '--dump-json';
+      } else {
+        args.push('--dump-json');
       }
 
-      const data = (await response.json()) as YTMusicPlayerResponse;
-      return this.parsePlayerResponse(data, trackId);
+      logger.info({ trackId }, 'Fetching track metadata via yt-dlp fallback');
+      const process = spawn('yt-dlp', args);
+
+      let stdout = '';
+      let stderr = '';
+
+      process.stdout.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+
+      process.stderr.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+
+      process.on('close', (code: number | null) => {
+        if (code !== 0 || !stdout.trim()) {
+          logger.warn({ stderr, trackId }, 'yt-dlp fallback failed to fetch metadata');
+          resolve(null);
+          return;
+        }
+
+        try {
+          const data = JSON.parse(stdout.trim());
+          const track: Track = {
+            id: data.id,
+            title: data.title || 'Unknown',
+            artist: data.uploader || data.artist || 'Unknown Artist',
+            durationSeconds: data.duration || 0,
+            provider: ProviderType.YOUTUBE,
+            thumbnailUrl: data.thumbnail,
+            externalUrl: data.webpage_url || `https://music.youtube.com/watch?v=${trackId}`,
+          };
+          resolve(track);
+        } catch (error) {
+          logger.warn({ error, trackId }, 'Failed to parse yt-dlp JSON output');
+          resolve(null);
+        }
+      });
     });
   }
 
@@ -426,78 +455,8 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
 
   private extractStreamUrl(trackId: string): Promise<string | null> {
     return new Promise((resolve, reject) => {
-      // Build yt-dlp arguments with cookies, PO token, and user-agent
-      const args = [
-        '-f', 'bestaudio',
-        '--get-url',
-        '--no-playlist',
-        '--geo-bypass',
-        '--force-ipv4',
-      ];
-
-      // Add user-agent
-      const userAgent = this.config.ytdlp?.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-      args.push('--user-agent', userAgent);
-
-      // Add cookies from environment variable or file
-      const cookiesFromEnv = process.env.YTDLP_COOKIES;
-      if (cookiesFromEnv) {
-        // Write cookies from env to temporary file
-        const tempCookiesPath = path.join(process.cwd(), '.cookies-temp.txt');
-        try {
-          fs.writeFileSync(tempCookiesPath, cookiesFromEnv, 'utf-8');
-          args.push('--cookies', tempCookiesPath);
-          logger.info('Using cookies from YTDLP_COOKIES environment variable');
-        } catch (error) {
-          logger.error({ error }, 'Failed to write cookies from environment variable');
-        }
-      } else {
-        // Fallback to cookies file path
-        const cookiesPath = this.config.ytdlp?.cookiesPath;
-        if (cookiesPath) {
-          const resolvedCookiesPath = path.resolve(process.cwd(), cookiesPath);
-          if (fs.existsSync(resolvedCookiesPath)) {
-            args.push('--cookies', resolvedCookiesPath);
-            logger.info({ cookiesPath: resolvedCookiesPath }, 'Using cookies file for yt-dlp');
-          } else {
-            logger.warn({ cookiesPath: resolvedCookiesPath }, 'Cookies file not found, proceeding without cookies');
-          }
-        }
-      }
-
-      // Add PO token if available
-      if (this.config.ytdlp?.poToken) {
-        args.push('--extractor-args', `youtube:po_token=${this.config.ytdlp.poToken}`);
-        logger.info('Using PO token for yt-dlp');
-      }
-
-      // Add visitor data if available
-      if (this.config.ytdlp?.visitorData) {
-        args.push('--extractor-args', `youtube:visitor_data=${this.config.ytdlp.visitorData}`);
-        logger.info('Using visitor data for yt-dlp');
-      }
-
-      // Add POT provider args if enabled
-      if (this.potProviderConfig?.enabled) {
-        const port = this.potProviderConfig.port || 4416;
-        args.push('--extractor-args', `youtubepot-bgutilhttp:base_url=http://127.0.0.1:${port}`);
-        logger.info({ port }, 'Using bgutil-ytdlp-pot-provider plugin');
-      }
-
-      // Add other headers and options
-      args.push(
-        '--add-header', 'Accept-Language:en-US,en;q=0.9',
-        // Use default client as recommended by yt-dlp for avoiding bot detection
-        // and to silence the "No supported JavaScript runtime" warning if it persists
-        '--extractor-args', 'youtube:player_client=default,ios,android',
-        // Enable JavaScript runtime support (uses Node.js)
-        // Explicitly point to the node binary to ensure it's found
-        '--js-runtimes', '/usr/local/bin/node',
-        // Allow downloading remote JavaScript challenge solver from GitHub
-        '--remote-components', 'ejs:github',
-        '--no-check-certificates',
-        `https://music.youtube.com/watch?v=${trackId}`
-      );
+      const args = this.buildYtDlpArgs(trackId);
+      args.push('--get-url');
 
       logger.info({ trackId, args: args.join(' ') }, 'Executing yt-dlp command with anti-bot measures');
       const ytdlpProcess = spawn('yt-dlp', args);
@@ -527,6 +486,72 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
         resolve(stdout.trim());
       });
     });
+  }
+
+  private buildYtDlpArgs(trackId: string): string[] {
+    const args = [
+      '-f', 'bestaudio',
+      '--no-playlist',
+      '--geo-bypass',
+      '--force-ipv4',
+    ];
+
+    // Add user-agent
+    const userAgent = this.config.ytdlp?.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    args.push('--user-agent', userAgent);
+
+    // Add cookies from environment variable or file
+    const cookiesFromEnv = process.env.YTDLP_COOKIES;
+    if (cookiesFromEnv) {
+      // Write cookies from env to temporary file
+      const tempCookiesPath = path.join(process.cwd(), '.cookies-temp.txt');
+      try {
+        fs.writeFileSync(tempCookiesPath, cookiesFromEnv, 'utf-8');
+        args.push('--cookies', tempCookiesPath);
+      } catch (error) {
+        logger.error({ error }, 'Failed to write cookies from environment variable');
+      }
+    } else {
+      // Fallback to cookies file path
+      const cookiesPath = this.config.ytdlp?.cookiesPath;
+      if (cookiesPath) {
+        const resolvedCookiesPath = path.resolve(process.cwd(), cookiesPath);
+        if (fs.existsSync(resolvedCookiesPath)) {
+          args.push('--cookies', resolvedCookiesPath);
+        }
+      }
+    }
+
+    // Add PO token if available
+    if (this.config.ytdlp?.poToken) {
+      args.push('--extractor-args', `youtube:po_token=${this.config.ytdlp.poToken}`);
+    }
+
+    // Add visitor data if available
+    if (this.config.ytdlp?.visitorData) {
+      args.push('--extractor-args', `youtube:visitor_data=${this.config.ytdlp.visitorData}`);
+    }
+
+    // Add POT provider args if enabled
+    if (this.potProviderConfig?.enabled) {
+      const port = this.potProviderConfig.port || 4416;
+      args.push('--extractor-args', `youtubepot-bgutilhttp:base_url=http://127.0.0.1:${port}`);
+    }
+
+    // Add other headers and options
+    args.push(
+      '--add-header', 'Accept-Language:en-US,en;q=0.9',
+      // Use default client as recommended by yt-dlp for avoiding bot detection
+      '--extractor-args', 'youtube:player_client=default',
+      // Enable JavaScript runtime support (uses Node.js)
+      '--js-runtimes', 'node',
+      // Allow downloading remote JavaScript challenge solver from GitHub
+      '--remote-components', 'ejs:github',
+      '--no-check-certificates',
+      `https://music.youtube.com/watch?v=${trackId}`
+    );
+
+    return args;
   }
 
   private async withRetry<T>(operation: string, fn: () => Promise<T>): Promise<T> {

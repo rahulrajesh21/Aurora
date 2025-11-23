@@ -18,7 +18,7 @@ import { RoomManager } from './RoomManager';
 
 
 
-const STREAM_CACHE_TTL_MS = 5 * 60 * 1000;
+const STREAM_CACHE_TTL_MS = 5 * 60 * 60 * 1000; // 5 hours (YouTube URLs valid for 6 hours)
 const streamUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
 export class StreamingService {
@@ -70,6 +70,18 @@ export class StreamingService {
     }
   }
 
+  private enrichState(state: PlaybackState): PlaybackState {
+    if (state.streamUrl && state.currentTrack) {
+      // Replace raw stream URL with proxy URL
+      // The frontend will prepend the base URL
+      return {
+        ...state,
+        streamUrl: `/api/playback/stream/${state.currentTrack.id}`,
+      };
+    }
+    return state;
+  }
+
   async play(roomId: string, trackId: string, providerType: ProviderType): Promise<PlaybackState> {
     logger.info({ roomId, trackId, providerType }, 'Starting playback');
     const session = await this.getSession(roomId);
@@ -85,8 +97,9 @@ export class StreamingService {
 
     await session.playbackEngine.startPlayback(track);
     const newState = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, newState);
-    return newState;
+    const enrichedState = this.enrichState(newState);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
+    return enrichedState;
   }
 
   async pause(roomId: string, positionSeconds?: number): Promise<PlaybackState> {
@@ -96,8 +109,9 @@ export class StreamingService {
     }
     await session.playbackEngine.pause();
     const newState = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, newState);
-    return newState;
+    const enrichedState = this.enrichState(newState);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
+    return enrichedState;
   }
 
   async resume(roomId: string): Promise<PlaybackState> {
@@ -116,24 +130,27 @@ export class StreamingService {
       }
     }
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
-    return state;
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
+    return enrichedState;
   }
 
   async skip(roomId: string): Promise<PlaybackState> {
     const session = await this.getSession(roomId);
     await session.playbackEngine.playNext();
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
-    return state;
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
+    return enrichedState;
   }
 
   async seek(roomId: string, positionSeconds: number): Promise<PlaybackState> {
     const session = await this.getSession(roomId);
     await session.playbackEngine.seekTo(positionSeconds);
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
-    return state;
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
+    return enrichedState;
   }
 
   async seekByPercentage(roomId: string, percentage: number): Promise<PlaybackState> {
@@ -151,7 +168,8 @@ export class StreamingService {
 
   async getState(roomId: string): Promise<PlaybackState> {
     const session = await this.getSession(roomId);
-    return session.stateManager.getState();
+    const state = await session.stateManager.getState();
+    return this.enrichState(state);
   }
 
   async resolveStreamUrl(trackId: string): Promise<string> {
@@ -221,35 +239,48 @@ export class StreamingService {
 
     await session.queueManager.addTrack(track, 'user');
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
+
+    // Only prefetch if this is the next song in queue (queue has exactly 1 song)
+    if (enrichedState.queue.length === 1) {
+      logger.info({ trackId: track.id }, 'Prefetching stream URL for next track in queue');
+      this.resolveStreamUrl(track.id).catch(err => {
+        logger.warn({ err, trackId: track.id }, 'Failed to prefetch stream URL for next track');
+      });
+    }
   }
 
   async removeFromQueue(roomId: string, position: number): Promise<void> {
     const session = await this.getSession(roomId);
     await session.queueManager.removeTrack(position);
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
   }
 
   async reorderQueue(roomId: string, from: number, to: number): Promise<void> {
     const session = await this.getSession(roomId);
     await session.queueManager.reorderTrack(from, to);
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
   }
 
   async clearQueue(roomId: string): Promise<void> {
     const session = await this.getSession(roomId);
     await session.queueManager.clearQueue();
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
   }
 
   async shuffleQueue(roomId: string): Promise<void> {
     const session = await this.getSession(roomId);
     await session.queueManager.shuffle();
     const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
+    const enrichedState = this.enrichState(state);
+    await this.updateAndBroadcast(roomId, session, enrichedState);
   }
 
   async getQueue(roomId: string): Promise<Track[]> {

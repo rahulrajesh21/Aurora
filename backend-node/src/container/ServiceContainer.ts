@@ -56,7 +56,7 @@ export class ServiceContainer {
     this.roomManager = RoomManager.create(this.config, roomStorage);
 
     this.itunesService = new ItunesService();
-    this.lyricsService = new LyricsService();
+    this.lyricsService = new LyricsService(this.config);
 
     this.popularAlbumsService = new PopularAlbumsService(this.config.popularAlbums);
     this.potProviderService = new PotProviderService(this.config.youtube.ytdlp);

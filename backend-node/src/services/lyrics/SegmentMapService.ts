@@ -1,8 +1,12 @@
 import { spawn } from 'node:child_process';
 import { logger } from '../../utils/logger';
 import { SegmentMap } from './types';
+import { AppConfig } from '../../config/appConfig';
+import fs from 'node:fs';
+import path from 'node:path';
 
 export class SegmentMapService {
+    constructor(private readonly config: AppConfig) { }
     async getSegmentMap(trackId: string): Promise<SegmentMap | null> {
         try {
             const metadata = await this.fetchMetadata(trackId);
@@ -57,7 +61,10 @@ export class SegmentMapService {
 
     private async fetchMetadata(trackId: string): Promise<any> {
         return new Promise((resolve, reject) => {
-            const process = spawn('yt-dlp', ['--dump-json', `https://www.youtube.com/watch?v=${trackId}`]);
+            const args = this.buildYtDlpArgs(trackId);
+            args.push('--dump-json');
+
+            const process = spawn('yt-dlp', args);
 
             let stdout = '';
             let stderr = '';
@@ -77,5 +84,72 @@ export class SegmentMapService {
                 }
             });
         });
+    }
+
+
+    private buildYtDlpArgs(trackId: string): string[] {
+        const args = [
+            '--no-playlist',
+            '--geo-bypass',
+            '--force-ipv4',
+        ];
+
+        // Add user-agent
+        const userAgent = this.config.youtube.ytdlp?.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        args.push('--user-agent', userAgent);
+
+        // Add cookies from environment variable or file
+        const cookiesFromEnv = process.env.YTDLP_COOKIES;
+        if (cookiesFromEnv) {
+            // Write cookies from env to temporary file
+            const tempCookiesPath = path.join(process.cwd(), '.cookies-temp.txt');
+            try {
+                fs.writeFileSync(tempCookiesPath, cookiesFromEnv, 'utf-8');
+                args.push('--cookies', tempCookiesPath);
+            } catch (error) {
+                logger.error({ error }, 'Failed to write cookies from environment variable');
+            }
+        } else {
+            // Fallback to cookies file path
+            const cookiesPath = this.config.youtube.ytdlp?.cookiesPath;
+            if (cookiesPath) {
+                const resolvedCookiesPath = path.resolve(process.cwd(), cookiesPath);
+                if (fs.existsSync(resolvedCookiesPath)) {
+                    args.push('--cookies', resolvedCookiesPath);
+                }
+            }
+        }
+
+        // Add PO token if available
+        if (this.config.youtube.ytdlp?.poToken) {
+            args.push('--extractor-args', `youtube:po_token=${this.config.youtube.ytdlp.poToken}`);
+        }
+
+        // Add visitor data if available
+        if (this.config.youtube.ytdlp?.visitorData) {
+            args.push('--extractor-args', `youtube:visitor_data=${this.config.youtube.ytdlp.visitorData}`);
+        }
+
+        // Add POT provider args if enabled
+        const potProviderConfig = this.config.youtube.ytdlp?.potProvider;
+        if (potProviderConfig?.enabled) {
+            const port = potProviderConfig.port || 4416;
+            args.push('--extractor-args', `youtubepot-bgutilhttp:base_url=http://127.0.0.1:${port}`);
+        }
+
+        // Add other headers and options
+        args.push(
+            '--add-header', 'Accept-Language:en-US,en;q=0.9',
+            // Use default client as recommended by yt-dlp for avoiding bot detection
+            '--extractor-args', 'youtube:player_client=default',
+            // Enable JavaScript runtime support (uses Node.js)
+            '--js-runtimes', 'node',
+            // Allow downloading remote JavaScript challenge solver from GitHub
+            '--remote-components', 'ejs:github',
+            '--no-check-certificates',
+            `https://music.youtube.com/watch?v=${trackId}`
+        );
+
+        return args;
     }
 }
