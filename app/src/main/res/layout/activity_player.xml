@@ -109,6 +109,27 @@
         app:layout_constraintTop_toBottomOf="@id/artistName"
         app:layout_constraintBottom_toTopOf="@id/progressContainer"/>
 
+    <com.example.music_room.ui.view.WaveLoadingView
+        android:id="@+id/lyricsLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/lyricsRecyclerView"
+        app:layout_constraintBottom_toBottomOf="@id/lyricsRecyclerView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/lyricsMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:textColor="@color/text_secondary_grey"
+        app:layout_constraintTop_toTopOf="@id/lyricsRecyclerView"
+        app:layout_constraintBottom_toBottomOf="@id/lyricsRecyclerView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <!-- Progress Bar Container -->
     <LinearLayout
         android:id="@+id/progressContainer"

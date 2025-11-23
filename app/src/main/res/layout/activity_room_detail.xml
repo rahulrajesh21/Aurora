@@ -121,7 +121,7 @@
         app:layout_constraintTop_toBottomOf="@id/currentSongArtist"
         app:layout_constraintBottom_toTopOf="@id/progressContainer"/>
         
-    <ProgressBar
+    <com.example.music_room.ui.view.WaveLoadingView
         android:id="@+id/lyricsLoading"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
