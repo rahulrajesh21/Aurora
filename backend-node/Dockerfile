@@ -42,7 +42,7 @@ RUN pip3 install --no-cache-dir --break-system-packages yt-dlp bgutil-ytdlp-pot-
 WORKDIR /opt
 RUN git clone https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git
 WORKDIR /opt/bgutil-ytdlp-pot-provider/server
-RUN npm install && npm run build
+RUN npm install && npx tsc
 
 # Create app directory
 WORKDIR /app
