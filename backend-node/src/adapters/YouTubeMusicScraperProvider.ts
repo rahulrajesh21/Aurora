@@ -142,6 +142,7 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
   private readonly webContext: YTMusicContext;
   private readonly apiKey: string;
   private readonly config: AppConfig['youtube'];
+  private readonly potProviderConfig?: { enabled: boolean; port: number };
 
   constructor(youtubeApiKey?: string, config?: AppConfig['youtube']) {
     // Use environment variable or fallback to default key
@@ -156,7 +157,8 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     };
-    
+    this.potProviderConfig = this.config.ytdlp?.potProvider;
+
     // Use ANDROID_MUSIC client for stream URL extraction (better for avoiding signature issues)
     this.context = {
       client: {
@@ -166,7 +168,7 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
         gl: 'US',
       },
     };
-    
+
     // Use WEB_REMIX for search/browse (more reliable for metadata)
     this.webContext = {
       client: {
@@ -475,6 +477,13 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
         logger.info('Using visitor data for yt-dlp');
       }
 
+      // Add POT provider args if enabled
+      if (this.potProviderConfig?.enabled) {
+        const port = this.potProviderConfig.port || 4416;
+        args.push('--extractor-args', `youtubepot-bgutilhttp:base_url=http://127.0.0.1:${port}`);
+        logger.info({ port }, 'Using bgutil-ytdlp-pot-provider plugin');
+      }
+
       // Add other headers and options
       args.push(
         '--add-header', 'Accept-Language:en-US,en;q=0.9',
@@ -488,7 +497,7 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
         '--no-check-certificates',
         `https://music.youtube.com/watch?v=${trackId}`
       );
-      
+
       logger.info({ trackId, args: args.join(' ') }, 'Executing yt-dlp command with anti-bot measures');
       const ytdlpProcess = spawn('yt-dlp', args);
 

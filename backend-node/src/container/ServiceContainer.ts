@@ -15,6 +15,7 @@ import { RoomManager } from '../services/RoomManager';
 import { LyricsService } from '../services/lyrics/LyricsService';
 import { PopularAlbumsService } from '../services/PopularAlbumsService';
 import { ItunesService } from '../services/ItunesService';
+import { PotProviderService } from '../services/PotProviderService';
 
 export class ServiceContainer {
   private static instance: ServiceContainer | null = null;
@@ -43,6 +44,7 @@ export class ServiceContainer {
   private readonly lyricsService: LyricsService;
   private readonly popularAlbumsService: PopularAlbumsService;
   private readonly itunesService: ItunesService;
+  private readonly potProviderService: PotProviderService;
 
   private constructor() {
     this.config = loadConfig();
@@ -57,6 +59,7 @@ export class ServiceContainer {
     this.lyricsService = new LyricsService();
 
     this.popularAlbumsService = new PopularAlbumsService(this.config.popularAlbums);
+    this.potProviderService = new PotProviderService(this.config.youtube.ytdlp);
 
     this.webSocketManager.setLyricsService(this.lyricsService);
     this.lyricsService.setWebSocketManager(this.webSocketManager);
@@ -80,7 +83,11 @@ export class ServiceContainer {
   }
 
   private async bootstrap(): Promise<void> {
-    await Promise.all([this.roomManager.init(), this.popularAlbumsService.init()]);
+    await Promise.all([
+      this.roomManager.init(),
+      this.popularAlbumsService.init(),
+      this.potProviderService.start(),
+    ]);
   }
 
   getConfig(): AppConfig {
@@ -105,5 +112,9 @@ export class ServiceContainer {
 
   getPopularAlbumsService(): PopularAlbumsService {
     return this.popularAlbumsService;
+  }
+
+  getPotProviderService(): PotProviderService {
+    return this.potProviderService;
   }
 }

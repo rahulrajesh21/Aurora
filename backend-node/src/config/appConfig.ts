@@ -17,6 +17,10 @@ export interface YouTubeConfig {
     poToken?: string;
     visitorData?: string;
     userAgent?: string;
+    potProvider?: {
+      enabled: boolean;
+      port: number;
+    };
   };
 }
 
@@ -112,6 +116,10 @@ const DEFAULTS: AppConfig = {
     ytdlp: {
       cookiesPath: './cookies.txt',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      potProvider: {
+        enabled: true,
+        port: 4416,
+      },
     },
   },
   queue: {
@@ -138,7 +146,7 @@ const DEFAULTS: AppConfig = {
     refreshIntervalHours: 24,
     lastFmBaseUrl: 'https://ws.audioscrobbler.com/2.0/',
     lastFmApiKey: '',
-  lastFmMethod: 'chart.gettopalbums',
+    lastFmMethod: 'chart.gettopalbums',
     lastFmFormat: 'json',
     requestLimit: 100,
     maxAlbums: 50,
@@ -187,10 +195,10 @@ export function loadConfig(): AppConfig {
 
   const libsqlUrl = String(
     process.env.ROOMS_LIBSQL_URL ??
-      process.env.TURSO_DATABASE_URL ??
-      roomOverrides.libsql?.url ??
-      DEFAULTS.rooms.libsql?.url ??
-      '',
+    process.env.TURSO_DATABASE_URL ??
+    roomOverrides.libsql?.url ??
+    DEFAULTS.rooms.libsql?.url ??
+    '',
   ).trim();
   const libsqlAuthToken =
     process.env.ROOMS_LIBSQL_AUTH_TOKEN ??
@@ -212,6 +220,10 @@ export function loadConfig(): AppConfig {
         poToken: process.env.YT_PO_TOKEN ?? streaming.youtube?.ytdlp?.poToken,
         visitorData: process.env.YT_VISITOR_DATA ?? streaming.youtube?.ytdlp?.visitorData,
         userAgent: String(process.env.YTDLP_USER_AGENT ?? streaming.youtube?.ytdlp?.userAgent ?? DEFAULTS.youtube.ytdlp?.userAgent ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'),
+        potProvider: {
+          enabled: parseBoolean(process.env.YT_POT_ENABLED ?? streaming.youtube?.ytdlp?.potProvider?.enabled ?? DEFAULTS.youtube.ytdlp?.potProvider?.enabled),
+          port: Number(process.env.YT_POT_PORT ?? streaming.youtube?.ytdlp?.potProvider?.port ?? DEFAULTS.youtube.ytdlp?.potProvider?.port),
+        },
       },
     },
     queue: {
@@ -237,43 +249,43 @@ export function loadConfig(): AppConfig {
       cachePath: String(process.env.POPULAR_ALBUMS_CACHE_PATH ?? streaming.popularAlbums?.cachePath ?? DEFAULTS.popularAlbums.cachePath),
       refreshIntervalHours: Number(
         process.env.POPULAR_ALBUMS_REFRESH_HOURS ??
-          streaming.popularAlbums?.refreshIntervalHours ??
-          DEFAULTS.popularAlbums.refreshIntervalHours,
+        streaming.popularAlbums?.refreshIntervalHours ??
+        DEFAULTS.popularAlbums.refreshIntervalHours,
       ),
       lastFmBaseUrl: String(
         process.env.LASTFM_BASE_URL ??
-          streaming.popularAlbums?.lastFmBaseUrl ??
-          DEFAULTS.popularAlbums.lastFmBaseUrl,
+        streaming.popularAlbums?.lastFmBaseUrl ??
+        DEFAULTS.popularAlbums.lastFmBaseUrl,
       ),
       lastFmApiKey: String(
         process.env.LASTFM_API_KEY ??
-          streaming.popularAlbums?.lastFmApiKey ??
-          DEFAULTS.popularAlbums.lastFmApiKey,
+        streaming.popularAlbums?.lastFmApiKey ??
+        DEFAULTS.popularAlbums.lastFmApiKey,
       ),
       lastFmMethod: String(
         process.env.LASTFM_METHOD ??
-          streaming.popularAlbums?.lastFmMethod ??
-          DEFAULTS.popularAlbums.lastFmMethod,
+        streaming.popularAlbums?.lastFmMethod ??
+        DEFAULTS.popularAlbums.lastFmMethod,
       ),
       lastFmFormat: String(
         process.env.LASTFM_FORMAT ??
-          streaming.popularAlbums?.lastFmFormat ??
-          DEFAULTS.popularAlbums.lastFmFormat,
+        streaming.popularAlbums?.lastFmFormat ??
+        DEFAULTS.popularAlbums.lastFmFormat,
       ),
       requestLimit: Number(
         process.env.LASTFM_REQUEST_LIMIT ??
-          streaming.popularAlbums?.requestLimit ??
-          DEFAULTS.popularAlbums.requestLimit,
+        streaming.popularAlbums?.requestLimit ??
+        DEFAULTS.popularAlbums.requestLimit,
       ),
       maxAlbums: Number(
         process.env.POPULAR_ALBUMS_MAX_RESULTS ??
-          streaming.popularAlbums?.maxAlbums ??
-          DEFAULTS.popularAlbums.maxAlbums,
+        streaming.popularAlbums?.maxAlbums ??
+        DEFAULTS.popularAlbums.maxAlbums,
       ),
       fallbackDataPath: String(
         process.env.POPULAR_ALBUMS_FALLBACK_PATH ??
-          streaming.popularAlbums?.fallbackDataPath ??
-          DEFAULTS.popularAlbums.fallbackDataPath,
+        streaming.popularAlbums?.fallbackDataPath ??
+        DEFAULTS.popularAlbums.fallbackDataPath,
       ),
     },
     rooms: {
@@ -287,9 +299,9 @@ export function loadConfig(): AppConfig {
       },
       libsql: libsqlUrl
         ? {
-            url: libsqlUrl,
-            authToken: libsqlAuthToken,
-          }
+          url: libsqlUrl,
+          authToken: libsqlAuthToken,
+        }
         : undefined,
     },
   };

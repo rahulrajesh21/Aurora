@@ -27,10 +27,15 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     ffmpeg \
-    ca-certificates
+    ca-certificates \
+    curl
 
-# Install yt-dlp
-RUN pip3 install --no-cache-dir --break-system-packages yt-dlp
+# Install yt-dlp and pot provider plugin
+RUN pip3 install --no-cache-dir --break-system-packages yt-dlp bgutil-ytdlp-pot-provider
+
+# Download bgutil-pot binary (Rust implementation)
+RUN curl -L https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-pot-linux-x86_64 -o /usr/local/bin/bgutil-pot && \
+    chmod +x /usr/local/bin/bgutil-pot
 
 # Create app directory
 WORKDIR /app
