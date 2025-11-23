@@ -478,14 +478,15 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
       // Add other headers and options
       args.push(
         '--add-header', 'Accept-Language:en-US,en;q=0.9',
-        // Use web client only (supports cookies and JavaScript runtime)
-        '--extractor-args', 'youtube:player_client=web',
+        // Use web_music client for music.youtube.com URLs (better for audio)
+        // Falls back to web if web_music fails
+        '--extractor-args', 'youtube:player_client=web_music,web_creator',
         // Enable JavaScript runtime support (uses Node.js if available)
         '--js-runtimes', 'node',
         // Allow downloading remote JavaScript challenge solver from GitHub
         '--remote-components', 'ejs:github',
         '--no-check-certificates',
-        `https://www.youtube.com/watch?v=${trackId}`
+        `https://music.youtube.com/watch?v=${trackId}`
       );
       
       logger.info({ trackId, args: args.join(' ') }, 'Executing yt-dlp command with anti-bot measures');
