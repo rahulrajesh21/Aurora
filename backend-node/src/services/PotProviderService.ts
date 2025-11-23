@@ -27,9 +27,9 @@ export class PotProviderService {
         try {
             logger.info({ port: this.port }, 'Starting bgutil-pot server...');
 
-            // Spawn the bgutil-pot binary
-            // Use absolute path as it's installed to /usr/local/bin in Dockerfile
-            this.process = spawn('/usr/local/bin/bgutil-pot', ['server', '--port', this.port.toString()], {
+            // Spawn the bgutil-pot server (Node.js version)
+            // Installed globally via npm
+            this.process = spawn('bgutil-ytdlp-pot-provider', ['server', '--port', this.port.toString()], {
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
 

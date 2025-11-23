@@ -34,12 +34,11 @@ RUN apt-get update && \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp and pot provider plugin
+# Install yt-dlp and pot provider plugin (Python)
 RUN pip3 install --no-cache-dir --break-system-packages yt-dlp bgutil-ytdlp-pot-provider
 
-# Download bgutil-pot binary (Rust implementation)
-RUN curl -L https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-pot-linux-x86_64 -o /usr/local/bin/bgutil-pot && \
-    chmod +x /usr/local/bin/bgutil-pot
+# Install pot provider server (Node.js)
+RUN npm install -g bgutil-ytdlp-pot-provider
 
 # Create app directory
 WORKDIR /app
@@ -51,19 +50,20 @@ RUN npm ci --omit=dev
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
-# Create non-root user
-RUN groupadd -r nodejs && useradd -r -g nodejs nodejs && \
+# Create non-root user with home directory for cache
+RUN groupadd -r nodejs && useradd -r -g nodejs -m -d /home/nodejs nodejs && \
     chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
 
-# Expose port
-EXPOSE 8080
-
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV HOME=/home/nodejs
+
+# Expose port
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
