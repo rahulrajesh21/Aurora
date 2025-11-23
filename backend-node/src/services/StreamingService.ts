@@ -16,7 +16,7 @@ import { AppConfig } from '../config/appConfig';
 import { RoomSession } from './RoomSession';
 import { RoomManager } from './RoomManager';
 
-import { spawn } from 'node:child_process';
+
 
 const STREAM_CACHE_TTL_MS = 5 * 60 * 1000;
 const streamUrlCache = new Map<string, { url: string; expiresAt: number }>();
@@ -164,36 +164,19 @@ export class StreamingService {
     return streamUrl;
   }
 
-  private fetchStreamUrl(trackId: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      // logger.info({ trackId }, 'Fetching stream URL'); // Reduced noise
-      const process = spawn('yt-dlp', ['-f', 'bestaudio', '--get-url', '--no-playlist', `https://www.youtube.com/watch?v=${trackId}`]);
+  private async fetchStreamUrl(trackId: string): Promise<string> {
+    const provider = this.providers.get(ProviderType.YOUTUBE);
+    if (!provider) {
+      throw new ProviderError(ProviderType.YOUTUBE, 'YouTube provider not available');
+    }
 
-      let stdout = '';
-      let stderr = '';
-
-      process.stdout.on('data', (chunk: Buffer) => {
-        stdout += chunk.toString();
-      });
-
-      process.stderr.on('data', (chunk: Buffer) => {
-        stderr += chunk.toString();
-      });
-
-      process.on('close', (code: number | null) => {
-        if (code !== 0 || !stdout.trim()) {
-          logger.error({ stderr }, 'Failed to extract stream URL');
-          reject(new Error('STREAM_ERROR'));
-          return;
-        }
-        resolve(stdout.trim());
-      });
-
-      process.on('error', (error: Error) => {
-        logger.error({ error }, 'yt-dlp spawn error');
-        reject(error);
-      });
-    });
+    try {
+      const streamInfo = await provider.getStreamUrl(trackId);
+      return streamInfo.streamUrl;
+    } catch (error) {
+      logger.error({ error, trackId }, 'Failed to resolve stream URL via provider');
+      throw error;
+    }
   }
 
   async search(query: string): Promise<SearchResult> {

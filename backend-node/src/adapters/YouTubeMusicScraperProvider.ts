@@ -487,11 +487,12 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
       // Add other headers and options
       args.push(
         '--add-header', 'Accept-Language:en-US,en;q=0.9',
-        // Use web_music client for music.youtube.com URLs (better for audio)
-        // Falls back to web if web_music fails
-        '--extractor-args', 'youtube:player_client=web_music,web_creator',
-        // Enable JavaScript runtime support (uses Node.js if available)
-        '--js-runtimes', 'node',
+        // Use default client as recommended by yt-dlp for avoiding bot detection
+        // and to silence the "No supported JavaScript runtime" warning if it persists
+        '--extractor-args', 'youtube:player_client=default,ios,android',
+        // Enable JavaScript runtime support (uses Node.js)
+        // Explicitly point to the node binary to ensure it's found
+        '--js-runtimes', '/usr/local/bin/node',
         // Allow downloading remote JavaScript challenge solver from GitHub
         '--remote-components', 'ejs:github',
         '--no-check-certificates',
