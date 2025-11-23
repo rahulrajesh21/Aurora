@@ -1,8 +1,10 @@
 # Multi-stage build for Aurora backend
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 # Install build dependencies
-RUN apk add --no-cache python3 py3-pip make g++
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -20,15 +22,17 @@ COPY src ./src
 RUN npm run build
 
 # Production stage
-FROM node:22-alpine
+FROM node:22-slim
 
 # Install runtime dependencies
-RUN apk add --no-cache \
+RUN apt-get update && \
+    apt-get install -y \
     python3 \
-    py3-pip \
+    python3-pip \
     ffmpeg \
     ca-certificates \
-    curl
+    curl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install yt-dlp and pot provider plugin
 RUN pip3 install --no-cache-dir --break-system-packages yt-dlp bgutil-ytdlp-pot-provider
@@ -48,11 +52,8 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Change ownership
-RUN chown -R nodejs:nodejs /app
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs && \
+    chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
