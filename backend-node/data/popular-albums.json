@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2025-11-22T06:50:04.356Z",
+  "fetchedAt": "2025-11-23T06:55:54.570Z",
   "albums": [
     {
       "id": "The Weeknd-Hurry Up Tomorrow",
@@ -34,14 +34,6 @@
       "releaseDate": "2025-06-05T23:11:00.000Z"
     },
     {
-      "id": "45bbde2e-bfc1-48c6-8b58-491348cd5459",
-      "title": "GNX",
-      "artist": "Kendrick Lamar",
-      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/a79564a9768d05272682b252deb02079.png",
-      "externalUrl": "https://www.last.fm/music/Kendrick+Lamar/GNX",
-      "releaseDate": "2025-03-03T11:03:00.000Z"
-    },
-    {
       "id": "4482a7c2-64bc-479e-acd4-9d64daa74c5c",
       "title": "yes, and?",
       "artist": "Ariana Grande",
@@ -50,12 +42,12 @@
       "releaseDate": "2025-01-01T14:21:00.000Z"
     },
     {
-      "id": "0c41aa7d-de57-4d98-a3c0-4c740834b410",
-      "title": "CRASH",
-      "artist": "Charli xcx",
-      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/647da295e6e0696ecfcd73229d5816f3.jpg",
-      "externalUrl": "https://www.last.fm/music/Charli+xcx/CRASH",
-      "releaseDate": "2025-09-09T12:19:00.000Z"
+      "id": "45bbde2e-bfc1-48c6-8b58-491348cd5459",
+      "title": "GNX",
+      "artist": "Kendrick Lamar",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/a79564a9768d05272682b252deb02079.png",
+      "externalUrl": "https://www.last.fm/music/Kendrick+Lamar/GNX",
+      "releaseDate": "2025-03-03T11:03:00.000Z"
     },
     {
       "id": "1065bda8-c38f-4824-8ce1-248014836d3f",
@@ -64,6 +56,14 @@
       "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/61d5e94c9aa712b29e283325bc5ae87f.jpg",
       "externalUrl": "https://www.last.fm/music/Kanye+West/The+College+Dropout",
       "releaseDate": "2025-11-11T10:29:00.000Z"
+    },
+    {
+      "id": "0c41aa7d-de57-4d98-a3c0-4c740834b410",
+      "title": "CRASH",
+      "artist": "Charli xcx",
+      "imageUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/647da295e6e0696ecfcd73229d5816f3.jpg",
+      "externalUrl": "https://www.last.fm/music/Charli+xcx/CRASH",
+      "releaseDate": "2025-09-09T12:19:00.000Z"
     },
     {
       "id": "0371b43b-2f83-486a-835e-eff8fdd50c75",

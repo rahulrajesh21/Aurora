@@ -14,9 +14,7 @@ import { RoomStorage } from '../storage/RoomStorage';
 import { RoomManager } from '../services/RoomManager';
 import { LyricsService } from '../services/lyrics/LyricsService';
 import { PopularAlbumsService } from '../services/PopularAlbumsService';
-
 import { ItunesService } from '../services/ItunesService';
-import { GemmaMetadataService } from '../services/lyrics/GemmaMetadataService';
 
 export class ServiceContainer {
   private static instance: ServiceContainer | null = null;
@@ -45,7 +43,6 @@ export class ServiceContainer {
   private readonly lyricsService: LyricsService;
   private readonly popularAlbumsService: PopularAlbumsService;
   private readonly itunesService: ItunesService;
-  private readonly gemmaMetadataService: GemmaMetadataService;
 
   private constructor() {
     this.config = loadConfig();
@@ -57,11 +54,7 @@ export class ServiceContainer {
     this.roomManager = RoomManager.create(this.config, roomStorage);
 
     this.itunesService = new ItunesService();
-    this.gemmaMetadataService = new GemmaMetadataService(
-      process.env.OPENROUTER_API_KEY ?? process.env.GEMMA_API_KEY,
-      this.itunesService
-    );
-    this.lyricsService = new LyricsService(this.gemmaMetadataService);
+    this.lyricsService = new LyricsService();
 
     this.popularAlbumsService = new PopularAlbumsService(this.config.popularAlbums);
 
@@ -72,7 +65,6 @@ export class ServiceContainer {
       this.webSocketManager,
       this.config,
       this.roomManager,
-      this.gemmaMetadataService,
     );
   }
 

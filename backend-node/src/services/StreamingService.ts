@@ -15,7 +15,6 @@ import { SearchResult } from '../models/SearchResult';
 import { AppConfig } from '../config/appConfig';
 import { RoomSession } from './RoomSession';
 import { RoomManager } from './RoomManager';
-import { GemmaMetadataService } from './lyrics/GemmaMetadataService';
 
 import { spawn } from 'node:child_process';
 
@@ -30,7 +29,6 @@ export class StreamingService {
     private readonly webSocketManager: WebSocketManager,
     private readonly config: AppConfig,
     private readonly roomManager: RoomManager,
-    private readonly metadataService: GemmaMetadataService,
   ) { }
 
   private async getSession(roomId: string): Promise<RoomSession> {

@@ -27,7 +27,6 @@ export class LyricsService {
   private segmentMapService = new SegmentMapService();
 
   constructor(
-    private readonly metadataService: GemmaMetadataService,
     private readonly requestTimeoutMs = 10000
   ) { }
 
