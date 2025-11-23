@@ -9,7 +9,6 @@ import type { WebSocketManager } from '../WebSocketManager';
 import { calculateSimilarity } from './lrcUtils';
 import { PlayerTelemetryState } from '../../models/PlayerTelemetryState';
 import { SegmentMapService } from './SegmentMapService';
-import { GemmaMetadataService } from './GemmaMetadataService';
 
 interface CacheEntry {
   version: string;
@@ -86,16 +85,6 @@ export class LyricsService {
 
     if (segmentMap?.counterpartVideoId) {
       providerRequest.videoId = segmentMap.counterpartVideoId;
-    }
-
-    const normalizedMetadata = await this.metadataService.normalizeMetadata({
-      song: providerRequest.song,
-      artist: providerRequest.artist,
-    });
-
-    if (normalizedMetadata) {
-      providerRequest.song = normalizedMetadata.song;
-      providerRequest.artist = normalizedMetadata.artist;
     }
 
     let selected: LyricSourceResult | null = null;

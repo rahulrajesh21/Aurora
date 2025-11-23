@@ -85,8 +85,6 @@ export class StreamingService {
       throw new TrackNotFoundError(trackId, providerType);
     }
 
-    await this.normalizeTrack(track);
-
     await session.playbackEngine.startPlayback(track);
     const newState = session.playbackEngine.getCurrentState();
     await this.updateAndBroadcast(roomId, session, newState);
@@ -240,31 +238,9 @@ export class StreamingService {
       throw new TrackNotFoundError(trackId, providerType);
     }
 
-    await this.normalizeTrack(track);
-
     await session.queueManager.addTrack(track, 'user');
     const state = session.playbackEngine.getCurrentState();
     await this.updateAndBroadcast(roomId, session, state);
-  }
-
-  private async normalizeTrack(track: Track): Promise<void> {
-    try {
-      const normalized = await this.metadataService.normalizeMetadata({
-        song: track.title,
-        artist: track.artist,
-      });
-
-      if (normalized) {
-        logger.info({ original: track.title, normalized }, 'Normalized track metadata');
-        track.title = normalized.song;
-        track.artist = normalized.artist;
-        if (normalized.artworkUrl) {
-          track.thumbnailUrl = normalized.artworkUrl;
-        }
-      }
-    } catch (error) {
-      logger.warn({ error }, 'Failed to normalize metadata, using original');
-    }
   }
 
   async removeFromQueue(roomId: string, position: number): Promise<void> {

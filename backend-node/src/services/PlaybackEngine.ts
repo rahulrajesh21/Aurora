@@ -112,6 +112,14 @@ export class PlaybackEngine {
     if (positionSeconds < 0 || positionSeconds > track.durationSeconds) {
       throw new InvalidSeekPosition(positionSeconds, track.durationSeconds);
     }
+    
+    // Check if stream URL has expired and refresh if needed
+    const streamInfo = this.currentStreamInfo;
+    if (streamInfo && streamInfo.expiresAt && streamInfo.expiresAt < Date.now()) {
+      // Stream URL has expired, refresh it
+      await this.reconnectStream();
+    }
+    
     this.positionSeconds = positionSeconds;
     this.lastUpdateTimestamp = Date.now();
   }

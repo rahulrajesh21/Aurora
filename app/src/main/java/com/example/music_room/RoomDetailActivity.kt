@@ -122,6 +122,11 @@ class RoomDetailActivity : AppCompatActivity() {
             schedulePlaybackTicker()
         }
     }
+    
+    // High-precision timing for lyrics sync
+    private var lastServerPositionMs: Long = 0
+    private var lastServerTimestamp: Long = 0
+    private var audioLatencyMs: Long = 0  // Measured audio latency
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -422,9 +427,14 @@ class RoomDetailActivity : AppCompatActivity() {
     }
 
     private fun applyPlaybackState(state: PlaybackStateDto) {
-    viewModel.sliderBasePositionSeconds = state.positionSeconds.toFloat()
+        viewModel.sliderBasePositionSeconds = state.positionSeconds.toFloat()
         viewModel.sliderBaseTimestamp = SystemClock.elapsedRealtime()
-    val track = state.currentTrack
+        
+        // Update high-precision timing for lyrics sync
+        lastServerPositionMs = (state.positionSeconds * 1000).toLong()
+        lastServerTimestamp = System.currentTimeMillis()
+        
+        val track = state.currentTrack
         val displayArtist = track?.artist.orEmpty()
 
         if (binding.queueCarousel.currentItem == 0) {
@@ -556,10 +566,8 @@ class RoomDetailActivity : AppCompatActivity() {
     }
 
     private fun updateLyricsForPosition(positionSeconds: Float, immediate: Boolean) {
-        val index = lyricsManager.getScrollIndex(positionSeconds)
-        if (index != -1) {
-            scrollLyricsTo(index, immediate)
-        }
+        val positionMs = (positionSeconds * 1000L).toLong()
+        updateLyricsForPositionMs(positionMs, immediate)
     }
 
     private fun scrollLyricsTo(index: Int, immediate: Boolean) {
@@ -575,7 +583,18 @@ class RoomDetailActivity : AppCompatActivity() {
     private fun schedulePlaybackTicker() {
         playbackTickerHandler.removeCallbacks(playbackTicker)
         if (viewModel.uiState.value.playbackState?.isPlaying == true) {
-            playbackTickerHandler.postDelayed(playbackTicker, 1000)
+            // Use faster updates (100ms) for rich-sync word-by-word animation
+            // Fallback to line-sync (1s) if rich-sync not available
+            val lyrics = syncedLyrics
+            val hasRichSync = lyrics?.syncType == com.example.music_room.data.repository.SyncType.RICH_SYNC &&
+                    lyrics.lines.any { it.parts.isNotEmpty() }
+            
+            val updateInterval = if (hasRichSync) {
+                100L  // 100ms for word-level karaoke
+            } else {
+                1000L  // 1s for line-level or no lyrics
+            }
+            playbackTickerHandler.postDelayed(playbackTicker, updateInterval)
         }
     }
 
@@ -588,10 +607,16 @@ class RoomDetailActivity : AppCompatActivity() {
         if (!state.isPlaying || sliderBeingDragged) return
         
         val duration = state.currentTrack?.durationSeconds?.takeIf { it > 0 }
-            ?: (binding.playbackSlider.max / 1000).coerceAtLeast(1)
-            
-        val elapsed = viewModel.sliderBasePositionSeconds +
-            ((SystemClock.elapsedRealtime() - viewModel.sliderBaseTimestamp) / 1000f)
+            ?: binding.playbackSlider.valueTo.toInt().coerceAtLeast(1)
+        
+        // Calculate position with high precision for lyrics
+        val currentTimeMs = System.currentTimeMillis()
+        val elapsedSinceServerUpdate = currentTimeMs - lastServerTimestamp
+        val estimatedPositionMs = lastServerPositionMs + elapsedSinceServerUpdate - audioLatencyMs
+        
+        // Use for slider (seconds, rounded)
+        val elapsedMillis = SystemClock.elapsedRealtime() - viewModel.sliderBaseTimestamp
+        val elapsed = viewModel.sliderBasePositionSeconds + (elapsedMillis / 1000f)
         val clamped = elapsed.coerceIn(0f, duration.toFloat())
         
         val displaySeconds = computeAnimatedDisplaySeconds(
@@ -615,7 +640,19 @@ class RoomDetailActivity : AppCompatActivity() {
         viewModel.sliderBasePositionSeconds = clamped
         viewModel.sliderBaseTimestamp = SystemClock.elapsedRealtime()
 
-        updateLyricsForPosition(clamped, immediate = false)
+        // Use high-precision milliseconds for lyrics sync
+        val precisePositionMs = estimatedPositionMs.coerceAtLeast(0L)
+        updateLyricsForPositionMs(precisePositionMs, immediate = false)
+    }
+    
+    private fun updateLyricsForPositionMs(positionMs: Long, immediate: Boolean) {
+        val lyrics = syncedLyrics ?: return
+        if (lyrics.lines.isEmpty()) return
+
+        val index = lyricsAdapter.updatePlaybackPosition(positionMs)
+        if (index != -1) {
+            scrollLyricsTo(index, immediate)
+        }
     }
 
     private fun updateProgressThumbVisuals(
