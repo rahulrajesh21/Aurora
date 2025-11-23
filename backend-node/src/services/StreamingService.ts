@@ -18,7 +18,7 @@ import { RoomManager } from './RoomManager';
 
 
 
-const STREAM_CACHE_TTL_MS = 5 * 60 * 1000;
+const STREAM_CACHE_TTL_MS = 5 * 60 * 60 * 1000; // 5 hours (YouTube URLs valid for 6 hours)
 const streamUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
 export class StreamingService {
@@ -241,6 +241,14 @@ export class StreamingService {
     const state = session.playbackEngine.getCurrentState();
     const enrichedState = this.enrichState(state);
     await this.updateAndBroadcast(roomId, session, enrichedState);
+
+    // Only prefetch if this is the next song in queue (queue has exactly 1 song)
+    if (enrichedState.queue.length === 1) {
+      logger.info({ trackId: track.id }, 'Prefetching stream URL for next track in queue');
+      this.resolveStreamUrl(track.id).catch(err => {
+        logger.warn({ err, trackId: track.id }, 'Failed to prefetch stream URL for next track');
+      });
+    }
   }
 
   async removeFromQueue(roomId: string, position: number): Promise<void> {

@@ -249,20 +249,21 @@ class MediaPlaybackService : MediaSessionService() {
             val currentUri = currentMediaItem?.localConfiguration?.uri?.toString()
             
             if (currentUri != streamUrl) {
+                // New stream URL - need to load new media
                 val mediaItem = MediaItem.fromUri(streamUrl)
                 player.setMediaItem(mediaItem)
                 player.prepare()
+                
+                // Set playWhenReady AFTER preparing to ensure smooth playback
+                player.playWhenReady = state.isPlaying
+            } else {
+                // Same stream URL - just update play/pause state
+                player.playWhenReady = state.isPlaying
             }
             
-            // Sync playback state
-            player.playWhenReady = state.isPlaying
-            
-            // Sync position (with some tolerance to avoid constant seeking)
-            val currentPosition = player.currentPosition / 1000f
-            val backendPosition = state.positionSeconds
-            if (kotlin.math.abs(currentPosition - backendPosition) > 2.0f) {
-                player.seekTo((backendPosition * 1000).toLong().coerceAtLeast(0L))
-            }
+            // Note: We intentionally DO NOT sync position here
+            // Position syncing during buffering causes seeks that interrupt playback
+            // The player will maintain its own position, and we only sync on user actions
             
             updateNotification()
         }

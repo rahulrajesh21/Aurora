@@ -229,43 +229,13 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
   }
 
   /**
-   * Get track details using YouTube Music player endpoint
+   * Get track details using yt-dlp directly
+   * Skip the YouTube Music API since it's unreliable
    */
   async getTrack(trackId: string): Promise<Track | null> {
     return this.withRetry('getTrack', async () => {
-      const url = `${YT_MUSIC_BASE}/player?key=${this.apiKey}`;
-
-      const body = {
-        context: this.context, // Use ANDROID_MUSIC for track metadata (more reliable)
-        videoId: trackId,
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': 'https://music.youtube.com/',
-          'Origin': 'https://music.youtube.com',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.warn({ status: response.status, trackId, errorText }, 'Failed to fetch track from YT Music API, falling back to yt-dlp');
-        return this.getTrackFromYtDlp(trackId);
-      }
-
-      const data = (await response.json()) as YTMusicPlayerResponse;
-      const track = this.parsePlayerResponse(data, trackId);
-
-      if (!track) {
-        logger.warn({ trackId }, 'Failed to parse player response, falling back to yt-dlp');
-        return this.getTrackFromYtDlp(trackId);
-      }
-
-      return track;
+      logger.info({ trackId }, 'Fetching track metadata via yt-dlp');
+      return this.getTrackFromYtDlp(trackId);
     });
   }
 
