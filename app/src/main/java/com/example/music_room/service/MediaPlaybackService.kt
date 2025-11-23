@@ -233,7 +233,13 @@ class MediaPlaybackService : MediaSessionService() {
         currentState = state
         
         val player = exoPlayer ?: return
-            val backendStreamUrl = state.streamUrl
+            val backendStreamUrl = state.streamUrl?.let { url ->
+                if (url.startsWith("/")) {
+                    "${com.example.music_room.BuildConfig.BACKEND_BASE_URL.removeSuffix("/")}$url"
+                } else {
+                    url
+                }
+            }
             val prefetched = state.currentTrack?.id?.let { StreamPrefetchCache.consume(it) }
             val streamUrl = prefetched ?: backendStreamUrl
         
