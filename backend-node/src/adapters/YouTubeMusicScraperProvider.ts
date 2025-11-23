@@ -137,8 +137,13 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
   public readonly providerType = ProviderType.YOUTUBE;
   private readonly context: YTMusicContext;
   private readonly webContext: YTMusicContext;
+  private readonly apiKey: string;
 
   constructor(youtubeApiKey?: string) {
+    // Use environment variable or fallback to default key
+    // Default key is from YouTube Music web app (public but may be rate-limited)
+    this.apiKey = youtubeApiKey || process.env.YOUTUBE_INNERTUBE_API_KEY || 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
+    
     // Use ANDROID_MUSIC client for stream URL extraction (better for avoiding signature issues)
     this.context = {
       client: {
@@ -175,7 +180,7 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
     }
 
     return this.withRetry('search', async () => {
-      const url = `${YT_MUSIC_BASE}/search?key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`;
+      const url = `${YT_MUSIC_BASE}/search?key=${this.apiKey}`;
 
       const body = {
         context: this.webContext, // Use WEB_REMIX for search
@@ -213,7 +218,7 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
    */
   async getTrack(trackId: string): Promise<Track | null> {
     return this.withRetry('getTrack', async () => {
-      const url = `${YT_MUSIC_BASE}/player?key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`;
+      const url = `${YT_MUSIC_BASE}/player?key=${this.apiKey}`;
 
       const body = {
         context: this.webContext, // Use WEB_REMIX for track metadata

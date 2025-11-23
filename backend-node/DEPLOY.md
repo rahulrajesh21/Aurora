@@ -39,7 +39,8 @@ NODE_ENV=production
 PORT=8080
 TURSO_DATABASE_URL=libsql://your-database-url.turso.io
 TURSO_AUTH_TOKEN=your-auth-token-here
-YOUTUBE_API_KEY=your-youtube-api-key (optional)
+YOUTUBE_API_KEY=your-youtube-api-key (optional - for metadata)
+YOUTUBE_INNERTUBE_API_KEY=your-innertube-key (optional - fallback to default)
 OPENROUTER_API_KEY=your-openrouter-key (optional)
 ```
 
