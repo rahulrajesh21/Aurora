@@ -36,6 +36,8 @@
     <string name="create_room_passcode_error">Passcode is required for private rooms</string>
     <string name="join_room_title">Join %1$s</string>
     <string name="room_join_failed">Failed to join room</string>
+    <string name="room_join_invalid_passcode">Invalid passcode. Try again.</string>
+    <string name="notification_permission_required">Notification permission is required for playback.</string>
     <string name="search_empty_hint">Search for songs...</string>
     <string name="popular_albums_label">Popular Albums</string>
     <string name="see_all_button">See All</string>
@@ -57,6 +59,7 @@
     <string name="delete_room_button">Delete Room</string>
     <string name="up_next_label">Up Next</string>
     <string name="add_song">Add Song</string>
+    <string name="add_music">Add Music</string>
     <string name="join_room_title_default">Join Room</string>
     <string name="join_room_subtitle">Enter code or passcode</string>
     <string name="passcode_hint">Passcode</string>

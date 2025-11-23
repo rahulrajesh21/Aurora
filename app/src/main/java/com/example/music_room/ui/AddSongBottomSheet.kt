@@ -154,6 +154,11 @@ class AddSongBottomSheet(
                 } else {
                     thumb.setImageResource(R.drawable.album_placeholder)
                 }
+                
+                // Enable marquee
+                title.isSelected = true
+                subtitle.isSelected = true
+                
                 playButton.setOnClickListener { onPlay?.invoke() }
                 addButton.setOnClickListener { onAdd?.invoke() }
             }

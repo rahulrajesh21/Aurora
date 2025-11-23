@@ -1,5 +1,4 @@
 import { Request, Response, Router } from 'express';
-import { spawn } from 'node:child_process';
 
 import { ProviderType } from '../models/ProviderType';
 import {
@@ -27,9 +26,6 @@ interface SeekRequest {
 interface PauseRequest {
   positionSeconds?: number;
 }
-
-const STREAM_CACHE_TTL_MS = 5 * 60 * 1000;
-const streamUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
 export function createPlaybackRoutes(streamingService: StreamingService): Router {
   const router = Router();
@@ -103,7 +99,7 @@ export function createPlaybackRoutes(streamingService: StreamingService): Router
     }
 
     try {
-      const streamUrl = await resolveStreamUrl(trackId);
+      const streamUrl = await streamingService.resolveStreamUrl(trackId);
       res.redirect(streamUrl);
     } catch (error) {
       logger.error({ error }, 'Failed to fetch stream URL');
@@ -119,7 +115,7 @@ export function createPlaybackRoutes(streamingService: StreamingService): Router
     }
 
     try {
-      const streamUrl = await resolveStreamUrl(trackId);
+      const streamUrl = await streamingService.resolveStreamUrl(trackId);
       res.json({ streamUrl });
     } catch (error) {
       logger.error({ error }, 'Failed to fetch stream URL info');
@@ -204,46 +200,4 @@ function handleGenericError(res: Response, error: unknown, code: string, fallbac
     return;
   }
   res.status(500).json(createError(code, fallbackMessage));
-}
-
-async function resolveStreamUrl(trackId: string): Promise<string> {
-  const cached = streamUrlCache.get(trackId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.url;
-  }
-  const streamUrl = await fetchStreamUrl(trackId);
-  streamUrlCache.set(trackId, { url: streamUrl, expiresAt: Date.now() + STREAM_CACHE_TTL_MS });
-  return streamUrl;
-}
-
-function fetchStreamUrl(trackId: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    logger.info({ trackId }, 'Fetching stream URL');
-    const process = spawn('yt-dlp', ['-f', 'bestaudio', '--get-url', '--no-playlist', `https://www.youtube.com/watch?v=${trackId}`]);
-
-    let stdout = '';
-    let stderr = '';
-
-    process.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString();
-    });
-
-    process.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-
-    process.on('close', (code: number | null) => {
-      if (code !== 0 || !stdout.trim()) {
-        logger.error({ stderr }, 'Failed to extract stream URL');
-        reject(new Error('STREAM_ERROR'));
-        return;
-      }
-      resolve(stdout.trim());
-    });
-
-    process.on('error', (error: Error) => {
-      logger.error({ error }, 'yt-dlp spawn error');
-      reject(error);
-    });
-  });
 }

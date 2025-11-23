@@ -86,7 +86,14 @@ class RoomDetailViewModel : ViewModel() {
 
     private var isJoining = false
 
-    fun joinRoom(roomId: String, displayName: String, passcode: String? = null, inviteCode: String? = null, onSuccess: (String) -> Unit) {
+    fun joinRoom(
+        roomId: String,
+        displayName: String,
+        passcode: String? = null,
+        inviteCode: String? = null,
+        onSuccess: (String) -> Unit,
+        onFailure: (Throwable) -> Unit = {}
+    ) {
         if (isJoining || _uiState.value.memberId != null) return
 
         isJoining = true
@@ -99,6 +106,7 @@ class RoomDetailViewModel : ViewModel() {
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(error = error.message) }
+                    onFailure(error)
                 }
             isJoining = false
         }

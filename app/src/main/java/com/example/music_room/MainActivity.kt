@@ -67,7 +67,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActions() {
-        binding.searchButton.setOnClickListener { promptSearch() }
         binding.roomsSeeAll.setOnClickListener { 
             startActivity(Intent(this, RoomsActivity::class.java))
         }
@@ -102,10 +101,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    private fun promptSearch() {
-        startActivity(Intent(this, SearchActivity::class.java))
     }
 
     private fun openPlayer(

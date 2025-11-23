@@ -1,5 +1,6 @@
 import { logger } from '../../utils/logger';
 import type { LyricsRequest } from './types';
+import { ItunesService } from '../ItunesService';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const GEMMA_MODEL = 'google/gemma-3-12b-it';
@@ -9,6 +10,7 @@ const CLIENT_TITLE = 'Aurora Better Lyrics Service';
 export interface NormalizedMetadata {
   artist: string;
   song: string;
+  artworkUrl?: string;
 }
 
 interface OpenRouterMessage {
@@ -32,8 +34,9 @@ export class GemmaMetadataService {
 
   constructor(
     private readonly apiKey = process.env.OPENROUTER_API_KEY ?? process.env.GEMMA_API_KEY ?? '',
+    private readonly itunesService: ItunesService,
     private readonly fetchImpl: FetchLike = fetch,
-  ) {}
+  ) { }
 
   async normalizeMetadata(request: Pick<LyricsRequest, 'song' | 'artist'>): Promise<NormalizedMetadata | null> {
     const title = request.song?.trim();
@@ -91,9 +94,22 @@ export class GemmaMetadataService {
       const artistRaw = (parsed['artist name'] ?? parsed.artist ?? parsed['artist_name']) as string | undefined;
       const songRaw = (parsed['song title'] ?? parsed.title ?? parsed['song_title']) as string | undefined;
 
+      const normalizedArtist = (artistRaw?.trim() || request.artist?.trim() || title).trim();
+      const normalizedSong = (songRaw?.trim() || title).trim();
+
+      // Fetch artwork from iTunes
+      let artworkUrl: string | undefined;
+      if (normalizedArtist && normalizedSong) {
+        const itunesArt = await this.itunesService.searchArtwork(normalizedArtist, normalizedSong);
+        if (itunesArt) {
+          artworkUrl = itunesArt;
+        }
+      }
+
       const normalized: NormalizedMetadata = {
-        artist: (artistRaw?.trim() || request.artist?.trim() || title).trim(),
-        song: (songRaw?.trim() || title).trim(),
+        artist: normalizedArtist,
+        song: normalizedSong,
+        artworkUrl,
       };
 
       this.remember(title, normalized);

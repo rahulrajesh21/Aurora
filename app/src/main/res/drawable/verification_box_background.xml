@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Error State (Red Border) - We'll toggle this programmatically by setting state_activated="true" or similar, 
+         but for simplicity, let's rely on a separate drawable or view property for error. 
+         Actually, let's use state_selected for error to keep it simple in XML. -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="@color/error_red" />
+        </shape>
+    </item>
+
+    <!-- Focused State (Black Border) -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="@color/black" />
+        </shape>
+    </item>
+
+    <!-- Default State (Gray Border) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#F5F5F5" />
+            <corners android:radius="12dp" />
+            <stroke android:width="1dp" android:color="#E0E0E0" />
+        </shape>
+    </item>
+</selector>

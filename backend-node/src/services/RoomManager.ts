@@ -139,9 +139,9 @@ export class RoomManager {
         }
       }
 
-      if (room.visibility === RoomVisibility.PRIVATE && !input.inviteCode) {
-        throw new RoomAccessError('Invite code is required for private rooms');
-      }
+      // if (room.visibility === RoomVisibility.PRIVATE && !input.inviteCode) {
+      //   throw new RoomAccessError('Invite code is required for private rooms');
+      // }
 
       if (input.inviteCode) {
         await this.consumeInvite(room.id, input.inviteCode);

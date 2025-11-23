@@ -1,5 +1,6 @@
 package com.example.music_room
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -74,6 +75,10 @@ class PlayerActivity : AppCompatActivity() {
     private val carouselPadding by lazy { resources.getDimensionPixelOffset(R.dimen.carousel_padding) }
     private val carouselPageMargin by lazy { resources.getDimensionPixelOffset(R.dimen.carousel_page_margin) }
     private var isUserSeeking = false
+    
+    // Carousel Animation State
+    private var pendingNewState: PlaybackStateDto? = null
+    private var isAnimatingTrackChange = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,10 +135,23 @@ class PlayerActivity : AppCompatActivity() {
                     val adapter = adapter as? QueueAdapter ?: return
                     val track = adapter.getItem(position) ?: return
                     
+                    // Only update text if we are NOT currently playing (or if it's the current track)
+                    // Actually, we want to show the browsed song's info
                     binding.songTitle.text = track.title
                     val displayArtist = track.artist
                     binding.artistName.text = displayArtist.takeIf { !it.isNullOrBlank() }
                         ?: getString(R.string.no_track_artist)
+                }
+
+                override fun onPageScrollStateChanged(state: Int) {
+                    super.onPageScrollStateChanged(state)
+                    if (state == ViewPager2.SCROLL_STATE_IDLE && isAnimatingTrackChange) {
+                        isAnimatingTrackChange = false
+                        pendingNewState?.let { newState ->
+                            updateCarouselList(newState)
+                            pendingNewState = null
+                        }
+                    }
                 }
             })
         }
@@ -143,6 +161,16 @@ class PlayerActivity : AppCompatActivity() {
         return CompositePageTransformer().apply {
             addTransformer(MarginPageTransformer(carouselPageMargin))
             addTransformer { page, position ->
+                // If we are programmatically animating a track change, disable the shrink/fade effect
+                // so the incoming card looks "active" immediately.
+                if (isAnimatingTrackChange) {
+                    page.scaleY = 1f
+                    page.scaleX = 1f
+                    page.alpha = 1f
+                    page.translationX = 0f
+                    return@addTransformer
+                }
+
                 val clampedPosition = position.coerceIn(-1f, 1f)
                 val focusProgress = 1 - abs(clampedPosition)
                 val minScale = 0.75f
@@ -161,9 +189,12 @@ class PlayerActivity : AppCompatActivity() {
         if (itemCount > 1) {
             recyclerView.clipToPadding = false
             recyclerView.setPadding(carouselPadding, 0, carouselPadding, 0)
+            binding.queueCarousel.offscreenPageLimit = 3
         } else {
             recyclerView.clipToPadding = true
             recyclerView.setPadding(0, 0, 0, 0)
+            // Prevent ghost views when list is small
+            binding.queueCarousel.offscreenPageLimit = 1
         }
         binding.queueCarousel.isUserInputEnabled = itemCount > 1
     }
@@ -176,10 +207,19 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun setupProgressBar() {
-        binding.progressBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        // Progress bar temporarily disabled in layout for debugging
+        val progressBar = binding.root.findViewById<SeekBar?>(R.id.progressBar) ?: return
+        progressBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    binding.currentTime.text = formatTime(progress)
+                    // Progress is in milliseconds
+                    val seconds = progress / 1000
+                    binding.currentTime.text = formatTime(seconds)
+                    
+                    // Update thumb alignment while dragging
+                    val max = seekBar?.max ?: 1
+                    val fraction = if (max > 0) progress.toFloat() / max else 0f
+                    (seekBar?.thumb as? com.example.music_room.ui.ProgressPillDrawable)?.setProgressFraction(fraction)
                 }
             }
 
@@ -189,10 +229,11 @@ class PlayerActivity : AppCompatActivity() {
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 isUserSeeking = false
-                val progress = seekBar?.progress ?: 0
+                val progressMs = seekBar?.progress ?: 0
+                val progressSeconds = progressMs / 1000
                 lifecycleScope.launch {
                     val id = roomId ?: return@launch
-                    repository.seekTo(id, progress)
+                    repository.seekTo(id, progressSeconds)
                 }
             }
         })
@@ -253,39 +294,32 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applyState(state: PlaybackStateDto) {
+        val oldState = currentState
         currentState = state
         basePositionSeconds = state.positionSeconds.toFloat()
         baseTimestamp = SystemClock.elapsedRealtime()
         
-    val track = state.currentTrack
-    val artistForDisplay = track?.artist?.takeIf { it.isNotBlank() }
+        val track = state.currentTrack
+        val artistForDisplay = track?.artist?.takeIf { it.isNotBlank() }
         
         // Only update text if we are NOT browsing (or if it's the first load)
         if (binding.queueCarousel.currentItem == 0) {
-                         binding.songTitle.text = track?.title ?: getString(R.string.no_track_playing)
-           binding.artistName.text = artistForDisplay ?: getString(R.string.no_track_artist)
+            binding.songTitle.text = track?.title ?: getString(R.string.no_track_playing)
+            binding.artistName.text = artistForDisplay ?: getString(R.string.no_track_artist)
         }
         
-        // Update Carousel
-        val items = (listOfNotNull(track) + state.queue)
-            .distinctBy { candidate ->
-                candidate.id.takeIf { !it.isNullOrBlank() } ?: "${candidate.title}-${candidate.artist}"
-            }
-
-        queueAdapter.submitList(items)
-        updateCarouselDecor(items.size)
-        if (items.isNotEmpty()) {
-            binding.queueCarousel.setCurrentItem(0, false)
-        }
-
-        // Update Progress Bar
+        // Update Progress Bar (if present in layout)
         val duration = track?.durationSeconds ?: 0
-        binding.progressBar.max = duration
         binding.totalTime.text = formatTime(duration)
-        
+        binding.root.findViewById<SeekBar?>(R.id.progressBar)?.let { bar ->
+            // Use milliseconds for smooth progress
+            bar.max = duration * 1000
+            if (!isUserSeeking) {
+                bar.progress = (state.positionSeconds * 1000).toInt()
+            }
+        }
         if (!isUserSeeking) {
-             binding.progressBar.progress = state.positionSeconds.toInt()
-             binding.currentTime.text = formatTime(state.positionSeconds.toInt())
+            binding.currentTime.text = formatTime(state.positionSeconds.toInt())
         }
 
         // Background service handles playback
@@ -299,11 +333,11 @@ class PlayerActivity : AppCompatActivity() {
             binding.queueCarousel.alpha = 0.5f
         }
 
-    syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds) }
+        syncedLyrics?.let { updateLyricsForPosition(basePositionSeconds) }
         
         // Fetch lyrics if changed
-    val artistForLyrics = artistForDisplay
-    if (track?.id != null && track.id != lastFetchedTrackId && !artistForLyrics.isNullOrBlank()) {
+        val artistForLyrics = artistForDisplay
+        if (track?.id != null && track.id != lastFetchedTrackId && !artistForLyrics.isNullOrBlank()) {
             lastFetchedTrackId = track.id
             fetchLyrics(track.title, artistForLyrics, track.durationSeconds, track.id)
             
@@ -320,6 +354,45 @@ class PlayerActivity : AppCompatActivity() {
                  Coil.imageLoader(this).enqueue(request)
              }
         }
+
+        // --- Carousel Logic ---
+        val trackChanged = oldState?.currentTrack?.id != state.currentTrack?.id
+        
+        if (trackChanged && track != null) {
+            // Check if the new track is in the CURRENT adapter list
+            val existingIndex = queueAdapter.indexOf(track.id)
+            
+            if (existingIndex != -1) {
+                // Phase 1: Animate to the new track
+                isAnimatingTrackChange = true
+                pendingNewState = state
+                binding.queueCarousel.setCurrentItem(existingIndex, true)
+                return // Wait for animation to finish before rebuilding list
+            } else {
+                // Track changed but not in list (or rapid change). Force immediate update.
+                isAnimatingTrackChange = false
+                pendingNewState = null
+            }
+        }
+        
+        // If not animating (or track not found in current list), update immediately
+        if (!isAnimatingTrackChange) {
+            updateCarouselList(state)
+        }
+    }
+
+    private fun updateCarouselList(state: PlaybackStateDto) {
+        val track = state.currentTrack
+        val items = (listOfNotNull(track) + state.queue)
+            .distinctBy { candidate ->
+                candidate.id.takeIf { !it.isNullOrBlank() } ?: "${candidate.title}-${candidate.artist}"
+            }
+
+        queueAdapter.submitList(items)
+        updateCarouselDecor(items.size)
+        
+        // Snap to 0 (Current Track)
+        binding.queueCarousel.setCurrentItem(0, false)
     }
 
     private fun updateTheme(url: String?) {
@@ -340,6 +413,33 @@ class PlayerActivity : AppCompatActivity() {
         binding.lyricsRecyclerView.background = gradient
         lyricsAdapter.setTextColor(textColor)
         binding.songTitle.setTextColor(textColor)
+
+        // Tint only the progress layer to the accent color, keep background black (if bar exists)
+        val accentColor = textColor
+        val bar = binding.root.findViewById<SeekBar?>(R.id.progressBar)
+        
+        // Set custom thumb if not already set
+        if (bar?.thumb !is com.example.music_room.ui.ProgressPillDrawable) {
+            bar?.thumb = com.example.music_room.ui.ProgressPillDrawable(this)
+            // Offset the thumb so it centers correctly if needed, though standard behavior should be fine.
+            // SeekBar might need thumbOffset adjustment if the drawable has padding, but our drawable is exact.
+            bar?.thumbOffset = 0 
+        }
+        
+        (bar?.thumb as? com.example.music_room.ui.ProgressPillDrawable)?.setPillColor(accentColor)
+        
+        // Ensure thumb has correct progress if we are paused or just starting
+        val max = bar?.max ?: 1
+        val progress = bar?.progress ?: 0
+        val fraction = if (max > 0) progress.toFloat() / max else 0f
+        (bar?.thumb as? com.example.music_room.ui.ProgressPillDrawable)?.setProgressFraction(fraction)
+
+        val progressDrawable = bar?.progressDrawable?.mutate() as? android.graphics.drawable.LayerDrawable
+        progressDrawable?.let { layer ->
+            val progressLayer = layer.findDrawableByLayerId(android.R.id.progress)
+            progressLayer?.mutate()?.setTint(accentColor)
+            bar.progressDrawable = layer
+        }
     }
 
     private fun adjustAlpha(color: Int, factor: Float): Int {
@@ -413,7 +513,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun schedulePlaybackTicker() {
         playbackTickerHandler.removeCallbacks(playbackTicker)
         if (currentState?.isPlaying == true) {
-            playbackTickerHandler.postDelayed(playbackTicker, 1000)
+            // Run at 60fps (approx 16ms) for smooth animation
+            playbackTickerHandler.postDelayed(playbackTicker, 16)
         }
     }
 
@@ -424,18 +525,36 @@ class PlayerActivity : AppCompatActivity() {
     private fun tickPlaybackPosition() {
         val state = currentState ?: return
         if (!state.isPlaying) return
-        
+
         val elapsed = basePositionSeconds + ((SystemClock.elapsedRealtime() - baseTimestamp) / 1000f)
         val clamped = elapsed.coerceAtLeast(0f)
-        
-        if (!isUserSeeking) {
-            binding.progressBar.progress = clamped.toInt()
-            binding.currentTime.text = formatTime(clamped.toInt())
+        val duration = state.currentTrack?.durationSeconds?.toFloat() ?: 1f
+
+        // --- Pill Animation Logic ---
+        val animationDuration = 10f // 10 seconds to grow/shrink
+        val scale = when {
+            clamped < animationDuration -> (clamped / animationDuration).coerceIn(0f, 1f)
+            clamped > (duration - animationDuration) -> ((duration - clamped) / animationDuration).coerceIn(0f, 1f)
+            else -> 1f
         }
         
+        val bar = binding.root.findViewById<SeekBar?>(R.id.progressBar)
+        val thumb = bar?.thumb as? com.example.music_room.ui.ProgressPillDrawable
+        thumb?.setWidthScale(scale)
+        
+        // Update progress for alignment
+        val progressFraction = if (duration > 0) clamped / duration else 0f
+        thumb?.setProgressFraction(progressFraction)
+
+        if (!isUserSeeking) {
+            // Update progress in milliseconds
+            bar?.progress = (clamped * 1000).toInt()
+            binding.currentTime.text = formatTime(clamped.toInt())
+        }
+
         basePositionSeconds = clamped
         baseTimestamp = SystemClock.elapsedRealtime()
-    updateLyricsForPosition(clamped)
+        updateLyricsForPosition(clamped)
     }
 
     private fun updateLyricsForPosition(positionSeconds: Float) {
@@ -483,12 +602,18 @@ class PlayerActivity : AppCompatActivity() {
             return items.getOrNull(position)
         }
 
+        fun indexOf(trackId: String): Int {
+            return items.indexOfFirst { it.id == trackId }
+        }
+
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): QueueViewHolder {
             val binding = ItemQueueCarouselBinding.inflate(android.view.LayoutInflater.from(parent.context), parent, false)
             return QueueViewHolder(binding)
         }
 
         override fun onBindViewHolder(holder: QueueViewHolder, position: Int) {
+            // Safety check for ghost views
+            if (position >= items.size) return
             holder.bind(items[position], position)
         }
 
@@ -497,6 +622,9 @@ class PlayerActivity : AppCompatActivity() {
         inner class QueueViewHolder(private val binding: ItemQueueCarouselBinding) : RecyclerView.ViewHolder(binding.root) {
             fun bind(track: TrackDto, position: Int) {
                 // Load art using repository (async)
+                // Clear previous image to prevent stale art on recycled views
+                binding.albumArt.setImageDrawable(null)
+                
                 // Load art using Coil
                 binding.albumArt.load(track.thumbnailUrl) {
                     placeholder(R.drawable.album_placeholder)
@@ -514,13 +642,11 @@ class PlayerActivity : AppCompatActivity() {
                         if (position == 0) {
                             togglePlayPause()
                         } else {
-                            // If it's a queue item, play it
-                            // We need to find its position in the real queue or use track ID if API supports it
-                            // For now, we can try to skip to it if it's next, or just playTrack
-                            repository.playTrack(id, track.id, track.provider)
+                            // Animate to the clicked item
+                            this@PlayerActivity.binding.queueCarousel.setCurrentItem(position, true)
                             
-                            // Reset carousel to center immediately to reflect the change visually
-                            this@PlayerActivity.binding.queueCarousel.setCurrentItem(0, true)
+                            // Play track
+                            repository.playTrack(id, track.id, track.provider)
                         }
                     }
                 }

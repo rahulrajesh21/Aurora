@@ -73,7 +73,7 @@
     app:autoSizeMaxTextSize="26sp"
     app:autoSizeMinTextSize="18sp"
     app:autoSizeStepGranularity="1sp"
-    android:layout_marginTop="8dp"
+    android:layout_marginTop="-12dp"
         android:layout_marginHorizontal="32dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -122,10 +122,10 @@
 
         <SeekBar
             android:id="@+id/progressBar"
+            style="@style/AuroraPlayerSeekBar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:progressTint="@color/accent_green_vibrant"
-            android:thumbTint="@color/accent_green_vibrant"/>
+            android:layout_height="16dp" 
+             />
 
         <RelativeLayout
             android:layout_width="match_parent"

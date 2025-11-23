@@ -26,9 +26,11 @@ export class LyricsService {
   private cache = new Map<string, CacheEntry>();
   private webSocketManager: WebSocketManager | null = null;
   private segmentMapService = new SegmentMapService();
-  private metadataService = new GemmaMetadataService();
 
-  constructor(private readonly requestTimeoutMs = 10000) { }
+  constructor(
+    private readonly metadataService: GemmaMetadataService,
+    private readonly requestTimeoutMs = 10000
+  ) { }
 
   setWebSocketManager(manager: WebSocketManager) {
     this.webSocketManager = manager;

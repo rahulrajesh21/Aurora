@@ -17,6 +17,11 @@ import { RoomSession } from './RoomSession';
 import { RoomManager } from './RoomManager';
 import { GemmaMetadataService } from './lyrics/GemmaMetadataService';
 
+import { spawn } from 'node:child_process';
+
+const STREAM_CACHE_TTL_MS = 5 * 60 * 1000;
+const streamUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
 export class StreamingService {
   private readonly sessions = new Map<string, RoomSession>();
 
@@ -25,6 +30,7 @@ export class StreamingService {
     private readonly webSocketManager: WebSocketManager,
     private readonly config: AppConfig,
     private readonly roomManager: RoomManager,
+    private readonly metadataService: GemmaMetadataService,
   ) { }
 
   private async getSession(roomId: string): Promise<RoomSession> {
@@ -44,35 +50,26 @@ export class StreamingService {
     await session.stateManager.persistState();
     await this.roomManager.updatePlaybackState(roomId, state);
     await this.webSocketManager.broadcastState(roomId, state);
+
+    // Trigger prefetch for the next track
+    this.prefetchNextTrack(roomId).catch(err => {
+      logger.warn({ err, roomId }, 'Failed to prefetch next track');
+    });
   }
 
-  async search(query: string): Promise<SearchResult> {
-    if (!query.trim()) {
-      throw new NetworkError('Search query cannot be blank');
+  private async prefetchNextTrack(roomId: string): Promise<void> {
+    const session = await this.getSession(roomId);
+    const queue = session.queueManager.getQueueSnapshot();
+    if (queue.length === 0) return;
+
+    // The next track is the first one in the queue (since current track is popped)
+    // OR if we are looking at the queue structure where current is separate, we need the first in queue.
+    // Based on PlaybackEngine, popNextTrack takes from queue. So queue[0] is next.
+    const nextTrack = queue[0];
+    if (nextTrack) {
+      logger.info({ trackId: nextTrack.id }, 'Prefetching next track stream URL');
+      await this.resolveStreamUrl(nextTrack.id);
     }
-
-    const allTracks: Track[] = [];
-    const providersUsed: ProviderType[] = [];
-
-    for (const [providerType, provider] of this.providers.entries()) {
-      try {
-        const tracks = await provider.search(query, 20);
-        allTracks.push(...tracks);
-        providersUsed.push(providerType);
-      } catch (error) {
-        logger.warn({ providerType, error }, 'Search failed for provider');
-      }
-    }
-
-    const sanitized = allTracks.filter((track) => {
-      const isValid = Boolean(track?.id && track?.title && track?.artist);
-      if (!isValid) {
-        logger.warn({ track }, 'Dropping invalid track from search results');
-      }
-      return isValid;
-    });
-
-    return { tracks: sanitized, query, providers: providersUsed };
   }
 
   async play(roomId: string, trackId: string, providerType: ProviderType): Promise<PlaybackState> {
@@ -87,6 +84,9 @@ export class StreamingService {
     if (!track) {
       throw new TrackNotFoundError(trackId, providerType);
     }
+
+    await this.normalizeTrack(track);
+
     await session.playbackEngine.startPlayback(track);
     const newState = session.playbackEngine.getCurrentState();
     await this.updateAndBroadcast(roomId, session, newState);
@@ -158,6 +158,77 @@ export class StreamingService {
     return session.stateManager.getState();
   }
 
+  async resolveStreamUrl(trackId: string): Promise<string> {
+    const cached = streamUrlCache.get(trackId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.url;
+    }
+    const streamUrl = await this.fetchStreamUrl(trackId);
+    streamUrlCache.set(trackId, { url: streamUrl, expiresAt: Date.now() + STREAM_CACHE_TTL_MS });
+    return streamUrl;
+  }
+
+  private fetchStreamUrl(trackId: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      // logger.info({ trackId }, 'Fetching stream URL'); // Reduced noise
+      const process = spawn('yt-dlp', ['-f', 'bestaudio', '--get-url', '--no-playlist', `https://www.youtube.com/watch?v=${trackId}`]);
+
+      let stdout = '';
+      let stderr = '';
+
+      process.stdout.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+
+      process.stderr.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+
+      process.on('close', (code: number | null) => {
+        if (code !== 0 || !stdout.trim()) {
+          logger.error({ stderr }, 'Failed to extract stream URL');
+          reject(new Error('STREAM_ERROR'));
+          return;
+        }
+        resolve(stdout.trim());
+      });
+
+      process.on('error', (error: Error) => {
+        logger.error({ error }, 'yt-dlp spawn error');
+        reject(error);
+      });
+    });
+  }
+
+  async search(query: string): Promise<SearchResult> {
+    if (!query.trim()) {
+      throw new NetworkError('Search query cannot be blank');
+    }
+
+    const allTracks: Track[] = [];
+    const providersUsed: ProviderType[] = [];
+
+    for (const [providerType, provider] of this.providers.entries()) {
+      try {
+        const tracks = await provider.search(query, 20);
+        allTracks.push(...tracks);
+        providersUsed.push(providerType);
+      } catch (error) {
+        logger.warn({ providerType, error }, 'Search failed for provider');
+      }
+    }
+
+    const sanitized = allTracks.filter((track) => {
+      const isValid = Boolean(track?.id && track?.title && track?.artist);
+      if (!isValid) {
+        logger.warn({ track }, 'Dropping invalid track from search results');
+      }
+      return isValid;
+    });
+
+    return { tracks: sanitized, query, providers: providersUsed };
+  }
+
   async addToQueue(roomId: string, trackId: string, providerType: ProviderType): Promise<void> {
     const session = await this.getSession(roomId);
     const provider = this.providers.get(providerType);
@@ -169,12 +240,16 @@ export class StreamingService {
       throw new TrackNotFoundError(trackId, providerType);
     }
 
-    // Normalize metadata using Gemma
+    await this.normalizeTrack(track);
+
+    await session.queueManager.addTrack(track, 'user');
+    const state = session.playbackEngine.getCurrentState();
+    await this.updateAndBroadcast(roomId, session, state);
+  }
+
+  private async normalizeTrack(track: Track): Promise<void> {
     try {
-      // We instantiate it here or inject it. Since it was used directly in LyricsService, we'll do the same for now.
-      // Ideally this should be injected.
-      const metadataService = new GemmaMetadataService();
-      const normalized = await metadataService.normalizeMetadata({
+      const normalized = await this.metadataService.normalizeMetadata({
         song: track.title,
         artist: track.artist,
       });
@@ -183,14 +258,13 @@ export class StreamingService {
         logger.info({ original: track.title, normalized }, 'Normalized track metadata');
         track.title = normalized.song;
         track.artist = normalized.artist;
+        if (normalized.artworkUrl) {
+          track.thumbnailUrl = normalized.artworkUrl;
+        }
       }
     } catch (error) {
       logger.warn({ error }, 'Failed to normalize metadata, using original');
     }
-
-    await session.queueManager.addTrack(track, 'user');
-    const state = session.playbackEngine.getCurrentState();
-    await this.updateAndBroadcast(roomId, session, state);
   }
 
   async removeFromQueue(roomId: string, position: number): Promise<void> {

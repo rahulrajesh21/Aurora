@@ -35,6 +35,11 @@ class SearchActivity : AppCompatActivity() {
 
         binding = ActivitySearchBinding.inflate(layoutInflater)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // Set light status bar (dark icons)
+        val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        controller.isAppearanceLightStatusBars = true
+        
         setContentView(binding.root)
 
         binding.backButton.setOnClickListener { finish() }
