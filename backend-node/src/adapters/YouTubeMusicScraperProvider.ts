@@ -478,10 +478,12 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
       // Add other headers and options
       args.push(
         '--add-header', 'Accept-Language:en-US,en;q=0.9',
-        // Use web,ios clients instead of android (android doesn't support cookies)
-        '--extractor-args', 'youtube:player_client=web,ios',
+        // Use web client only (supports cookies and JavaScript runtime)
+        '--extractor-args', 'youtube:player_client=web',
         // Enable JavaScript runtime support (uses Node.js if available)
         '--js-runtimes', 'node',
+        // Allow downloading remote JavaScript challenge solver from GitHub
+        '--remote-components', 'ejs:github',
         '--no-check-certificates',
         `https://www.youtube.com/watch?v=${trackId}`
       );

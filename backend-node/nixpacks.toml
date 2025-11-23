@@ -4,7 +4,8 @@ aptPkgs = []
 
 [phases.install]
 cmds = [
-  "pip3 install --upgrade 'yt-dlp[default]'",
+  "pip3 install --no-cache-dir --upgrade 'yt-dlp[default]'",
+  "yt-dlp --version",
   "npm install"
 ]
 
