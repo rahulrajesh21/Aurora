@@ -9,6 +9,7 @@ import type { WebSocketManager } from '../WebSocketManager';
 import { calculateSimilarity } from './lrcUtils';
 import { PlayerTelemetryState } from '../../models/PlayerTelemetryState';
 import { SegmentMapService } from './SegmentMapService';
+import { AppConfig } from '../../config/appConfig';
 
 interface CacheEntry {
   version: string;
@@ -24,11 +25,14 @@ interface ProviderSharedState {
 export class LyricsService {
   private cache = new Map<string, CacheEntry>();
   private webSocketManager: WebSocketManager | null = null;
-  private segmentMapService = new SegmentMapService();
+  private segmentMapService: SegmentMapService;
 
   constructor(
+    private readonly config: AppConfig,
     private readonly requestTimeoutMs = 10000
-  ) { }
+  ) {
+    this.segmentMapService = new SegmentMapService(this.config);
+  }
 
   setWebSocketManager(manager: WebSocketManager) {
     this.webSocketManager = manager;

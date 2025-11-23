@@ -1,4 +1,5 @@
 import { LyricsService } from '../services/lyrics/LyricsService';
+import { loadConfig } from '../config/appConfig';
 import { logger } from '../utils/logger';
 import { LyricsRequest } from '../services/lyrics/types';
 
@@ -14,7 +15,8 @@ async function testLyricsService() {
     };
 
     try {
-        const service = new LyricsService();
+        const config = loadConfig();
+        const service = new LyricsService(config);
         const result = await service.getLyrics(request);
 
         logger.info({
