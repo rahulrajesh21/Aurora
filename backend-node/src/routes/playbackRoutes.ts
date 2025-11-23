@@ -104,8 +104,10 @@ export function createPlaybackRoutes(streamingService: StreamingService): Router
     }
 
     try {
-      const streamUrl = await streamingService.resolveStreamUrl(trackId);
-      res.json({ streamUrl });
+      // Return the proxy URL instead of the raw stream URL
+      // The client should use this URL to stream audio through our backend proxy
+      const proxyUrl = `${req.protocol}://${req.get('host')}/api/playback/stream/${trackId}`;
+      res.json({ streamUrl: proxyUrl });
     } catch (error) {
       logger.error({ error }, 'Failed to fetch stream URL info');
       res.status(503).json(createError('STREAM_ERROR', 'Failed to get stream URL'));
