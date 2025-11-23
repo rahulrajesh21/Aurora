@@ -411,7 +411,18 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
 
   private extractStreamUrl(trackId: string): Promise<string | null> {
     return new Promise((resolve, reject) => {
-      const process = spawn('yt-dlp', ['-f', 'bestaudio', '--get-url', '--no-playlist', `https://www.youtube.com/watch?v=${trackId}`]);
+      // Add arguments to bypass YouTube restrictions
+      const args = [
+        '-f', 'bestaudio',
+        '--get-url',
+        '--no-playlist',
+        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        '--add-header', 'Accept-Language:en-US,en;q=0.9',
+        '--extractor-args', 'youtube:player_client=android',
+        `https://www.youtube.com/watch?v=${trackId}`
+      ];
+      
+      const process = spawn('yt-dlp', args);
 
       let stdout = '';
       let stderr = '';
