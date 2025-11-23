@@ -115,8 +115,10 @@ class PlayerActivity : AppCompatActivity() {
     private var isUserSeeking = false
     
     // Carousel Animation State
-    private var pendingNewState: PlaybackStateDto? = null
+    private var pendingCarouselItems: List<TrackDto>? = null
+    private var pendingState: PlaybackStateDto? = null
     private var isAnimatingTrackChange = false
+    private var animationStartIndex: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -169,6 +171,7 @@ class PlayerActivity : AppCompatActivity() {
             registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) {
                     super.onPageSelected(position)
+                    queueAdapter.setCenteredPosition(position)
                     // Browse Mode: Update title/artist but DO NOT skip track automatically
                     val adapter = adapter as? com.example.music_room.ui.adapter.TrackCarouselAdapter ?: return
                     val track = adapter.getItem(position) ?: return
@@ -184,11 +187,7 @@ class PlayerActivity : AppCompatActivity() {
                 override fun onPageScrollStateChanged(state: Int) {
                     super.onPageScrollStateChanged(state)
                     if (state == ViewPager2.SCROLL_STATE_IDLE && isAnimatingTrackChange) {
-                        isAnimatingTrackChange = false
-                        pendingNewState?.let { newState ->
-                            updateCarouselList(newState)
-                            pendingNewState = null
-                        }
+                        finalizeTrackChangeAnimation()
                     }
                 }
             })
@@ -368,6 +367,7 @@ class PlayerActivity : AppCompatActivity() {
             stopPlaybackTicker()
             binding.queueCarousel.alpha = 0.5f
         }
+        queueAdapter.setPlayingState(state.isPlaying)
 
         // Update lyrics position and scroll
         val scrollIndex = lyricsManager.getScrollIndex(basePositionSeconds)
@@ -397,41 +397,118 @@ class PlayerActivity : AppCompatActivity() {
         // --- Carousel Logic ---
         val trackChanged = oldState?.currentTrack?.id != state.currentTrack?.id
         
+        android.util.Log.d("PlayerActivity", "applyState: trackChanged=$trackChanged, " +
+            "isAnimating=$isAnimatingTrackChange, oldTrack=${oldState?.currentTrack?.title}, " +
+            "newTrack=${track?.title}, queueSize=${queueAdapter.itemCount}")
+
         if (trackChanged && track != null) {
-            // Check if the new track is in the CURRENT adapter list
             val existingIndex = queueAdapter.indexOf(track.id)
-            
-            if (existingIndex != -1) {
-                // Phase 1: Animate to the new track
+            android.util.Log.d("PlayerActivity", "Track changed to ${track.title}, found at index $existingIndex")
+
+            if (existingIndex != -1 && existingIndex > 0) {
+                // Don't build the new list yet - keep the old one for animation
+                android.util.Log.d("PlayerActivity", "Starting animation from 0 to $existingIndex")
                 isAnimatingTrackChange = true
-                pendingNewState = state
+                animationStartIndex = existingIndex
+                pendingState = state  // Store state to build list after animation
+                pendingCarouselItems = null
                 binding.queueCarousel.setCurrentItem(existingIndex, true)
-                return // Wait for animation to finish before rebuilding list
+                return
             } else {
-                // Track changed but not in list (or rapid change). Force immediate update.
+                // Track not in queue or already at position 0, just update immediately
+                android.util.Log.d("PlayerActivity", "Track at position $existingIndex, updating immediately")
                 isAnimatingTrackChange = false
-                pendingNewState = null
+                animationStartIndex = -1
+                pendingState = null
+                pendingCarouselItems = null
             }
         }
-        
-        // If not animating (or track not found in current list), update immediately
-        if (!isAnimatingTrackChange) {
-            updateCarouselList(state)
+
+        if (isAnimatingTrackChange) {
+            // Animation in progress, update pending state but don't update carousel yet
+            android.util.Log.d("PlayerActivity", "Animation in progress, storing pending state")
+            pendingState = state
+            return
         }
+
+        android.util.Log.d("PlayerActivity", "Updating carousel list immediately")
+        updateCarouselList(state)
     }
 
-    private fun updateCarouselList(state: PlaybackStateDto) {
+    private fun updateCarouselList(state: PlaybackStateDto, snapToCurrentTrack: Boolean = true) {
+        val items = buildCarouselItems(state)
+        submitCarouselItems(items, snapToCurrentTrack)
+    }
+
+    private fun buildCarouselItems(state: PlaybackStateDto): List<TrackDto> {
         val track = state.currentTrack
-        val items = (listOfNotNull(track) + state.queue)
+        return (listOfNotNull(track) + state.queue)
             .distinctBy { candidate ->
                 candidate.id.takeIf { !it.isNullOrBlank() } ?: "${candidate.title}-${candidate.artist}"
             }
+    }
 
-        queueAdapter.submitList(items)
-        updateCarouselDecor(items.size)
+    private fun submitCarouselItems(items: List<TrackDto>, snapToCurrentTrack: Boolean) {
+        // NEVER update the list during animation - this would cause visual glitches
+        if (isAnimatingTrackChange) {
+            android.util.Log.w("PlayerActivity", "submitCarouselItems called during animation - SKIPPING")
+            return
+        }
         
-        // Snap to 0 (Current Track)
-        binding.queueCarousel.setCurrentItem(0, false)
+        android.util.Log.d("PlayerActivity", "submitCarouselItems: ${items.size} items, snap=$snapToCurrentTrack")
+        queueAdapter.submitList(items)
+        queueAdapter.setCenteredPosition(binding.queueCarousel.currentItem)
+        updateCarouselDecor(items.size)
+
+        if (snapToCurrentTrack && items.isNotEmpty()) {
+            binding.queueCarousel.post {
+                binding.queueCarousel.setCurrentItem(0, false)
+            }
+        }
+    }
+
+    private fun finalizeTrackChangeAnimation() {
+        android.util.Log.d("PlayerActivity", "finalizeTrackChangeAnimation called, animStartIndex=$animationStartIndex")
+        
+        val state = pendingState
+        pendingState = null
+        pendingCarouselItems = null
+        val startIndex = animationStartIndex
+        animationStartIndex = -1
+        isAnimatingTrackChange = false
+
+        if (state != null) {
+            // NOW build the new list from the pending state
+            val items = buildCarouselItems(state)
+            android.util.Log.d("PlayerActivity", "Built ${items.size} items from pending state")
+            
+            if (items.isNotEmpty()) {
+                // The animation has moved us from position 0 to position N
+                // We're viewing what was at position N in the OLD list
+                // That track is now at position 0 in the NEW list
+                
+                // Disable user input temporarily
+                val wasEnabled = binding.queueCarousel.isUserInputEnabled
+                binding.queueCarousel.isUserInputEnabled = false
+                
+                // Submit the new list
+                android.util.Log.d("PlayerActivity", "Submitting new list and snapping to 0")
+                queueAdapter.submitList(items)
+                queueAdapter.setCenteredPosition(binding.queueCarousel.currentItem)
+                updateCarouselDecor(items.size)
+                
+                // Add a slight delay to ensure the animation has fully completed
+                // before we snap to position 0
+                binding.queueCarousel.postDelayed({
+                    binding.queueCarousel.setCurrentItem(0, false)
+                    binding.queueCarousel.isUserInputEnabled = wasEnabled
+                }, 50) // 50ms delay
+            } else {
+                binding.queueCarousel.setCurrentItem(0, false)
+            }
+        } else if (queueAdapter.itemCount == 0) {
+            binding.queueCarousel.setCurrentItem(0, false)
+        }
     }
 
     private fun updateTheme(url: String?) {

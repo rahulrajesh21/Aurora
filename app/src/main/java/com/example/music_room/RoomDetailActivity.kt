@@ -80,6 +80,8 @@ class RoomDetailActivity : AppCompatActivity() {
             }
         )
     }
+    private val syncedLyrics: SyncedLyrics?
+        get() = lyricsManager.syncedLyrics
     private var upcomingLyricsJob: Job? = null
     private var audioPrefetchJob: Job? = null
     private val prefetchedAudioIds = LinkedHashSet<String>()
@@ -246,6 +248,7 @@ class RoomDetailActivity : AppCompatActivity() {
             carouselPageChangeCallback = object : ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) {
                     super.onPageSelected(position)
+                    carouselAdapter.setCenteredPosition(position)
                     updateDisplayedTrackFromCarousel(position)
                 }
 
@@ -305,11 +308,12 @@ class RoomDetailActivity : AppCompatActivity() {
                     val playbackState = state.playbackState
                     playbackState?.let { applyPlaybackState(it) }
 
-                    // Update Carousel with Current + Queue
+                    // Update Carousel with Current + Queue (use playback state queue for consistency)
                     val items = mutableListOf<TrackDto>()
                     val currentTrack = playbackState?.currentTrack
                     currentTrack?.let { items.add(it) }
-                    items.addAll(state.queue)
+                    // Use playbackState.queue (real-time) instead of state.queue (REST fetch)
+                    playbackState?.let { items.addAll(it.queue) }
 
                     val previousTrackId = lastSyncedTrackId
                     val currentTrackId = currentTrack?.id
@@ -325,8 +329,8 @@ class RoomDetailActivity : AppCompatActivity() {
                     if (shouldAnimateToNext) {
                         startNextTrackAnimation(items)
                     } else if (isAnimatingToNextTrack) {
+                        // Animation in progress - just update pending, don't touch adapter or lastCarouselItems
                         pendingNextTrackItems = items
-                        lastCarouselItems = items
                     } else {
                         updateCarouselItems(items, shouldRecentre)
                     }
@@ -367,17 +371,25 @@ class RoomDetailActivity : AppCompatActivity() {
             return
         }
 
+        android.util.Log.d("RoomDetailActivity", "startNextTrackAnimation: pendingItems=${nextItems.map { it.title }}")
+        android.util.Log.d("RoomDetailActivity", "startNextTrackAnimation: currentAdapterList=${(0 until carouselAdapter.itemCount).map { carouselAdapter.getItem(it)?.title }}")
+        
+        // Store pending items but DON'T update lastCarouselItems yet
+        // The adapter keeps showing the old list during animation
         pendingNextTrackItems = nextItems
-        lastCarouselItems = nextItems
         isAnimatingToNextTrack = true
         binding.queueCarousel.post {
+            android.util.Log.d("RoomDetailActivity", "startNextTrackAnimation: setCurrentItem(1, true) called")
             binding.queueCarousel.setCurrentItem(1, true)
         }
     }
 
     private fun updateCarouselItems(items: List<TrackDto>, shouldRecentre: Boolean) {
+        android.util.Log.d("RoomDetailActivity", "updateCarouselItems: items=${items.map { it.title }}, shouldRecentre=$shouldRecentre, isAnimating=$isAnimatingToNextTrack")
+        
         lastCarouselItems = items
-        carouselAdapter.submitList(items)
+    carouselAdapter.submitList(items)
+    carouselAdapter.setCenteredPosition(binding.queueCarousel.currentItem.coerceIn(0, (items.size - 1).coerceAtLeast(0)))
 
         if (items.isEmpty()) {
             binding.queueCarousel.post {
@@ -405,16 +417,28 @@ class RoomDetailActivity : AppCompatActivity() {
 
     private fun finalizeNextTrackAnimation() {
         val items = pendingNextTrackItems
+        android.util.Log.d("RoomDetailActivity", "finalizeNextTrackAnimation: pendingItems=${items?.map { it.title }}, currentPosition=${binding.queueCarousel.currentItem}")
+        
         pendingNextTrackItems = null
         isAnimatingToNextTrack = false
         isCarouselBeingDragged = false
 
         if (items != null) {
-            carouselAdapter.submitList(items)
-            lastCarouselItems = items
+            // Animation complete: carousel is at position 1 showing the new current track
+            // The adapter STILL has the OLD list [Old Current, New Current, ...]
+            // We're at position 1 showing "New Current"
+            // Strategy: Update list FIRST (so position 0 = New Current), THEN snap to 0
+            // This way position 0 and position 1 show the SAME track during the instant snap
+            
+            android.util.Log.d("RoomDetailActivity", "finalizeNextTrackAnimation: updating adapter list to ${items.map { it.title }}")
             binding.queueCarousel.post {
+                carouselAdapter.submitList(items)
+                lastCarouselItems = items
+                carouselAdapter.setCenteredPosition(binding.queueCarousel.currentItem.coerceIn(0, (items.size - 1).coerceAtLeast(0)))
+                android.util.Log.d("RoomDetailActivity", "finalizeNextTrackAnimation: snapping to position 0")
                 binding.queueCarousel.setCurrentItem(0, false)
                 if (items.isNotEmpty()) {
+                    carouselAdapter.setCenteredPosition(0)
                     updateDisplayedTrackFromCarousel(0)
                 } else {
                     updateDisplayedTrack(null)
@@ -606,8 +630,13 @@ class RoomDetailActivity : AppCompatActivity() {
         val state = viewModel.uiState.value.playbackState ?: return
         if (!state.isPlaying || sliderBeingDragged) return
         
+        val sliderDurationSeconds = if (binding.playbackSlider.max > 0) {
+            binding.playbackSlider.max / 1000
+        } else {
+            0
+        }
         val duration = state.currentTrack?.durationSeconds?.takeIf { it > 0 }
-            ?: binding.playbackSlider.max.coerceAtLeast(1)
+            ?: sliderDurationSeconds.coerceAtLeast(1)
         
         // Calculate position with high precision for lyrics
         val currentTimeMs = System.currentTimeMillis()

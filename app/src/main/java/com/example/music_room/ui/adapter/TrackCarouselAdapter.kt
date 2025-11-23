@@ -16,6 +16,8 @@ class TrackCarouselAdapter(
 
     private var items: List<TrackDto> = emptyList()
     private var isPlaying: Boolean = false
+    // Which adapter position is currently centered in the ViewPager2
+    private var centeredPosition: Int = 0
 
     fun submitList(newItems: List<TrackDto>) {
         items = newItems
@@ -25,11 +27,21 @@ class TrackCarouselAdapter(
     fun setPlayingState(playing: Boolean) {
         if (isPlaying != playing) {
             isPlaying = playing
-            // Only the current track (index 0) visual might change based on playing state
+            // Update only the centered item visual
             if (items.isNotEmpty()) {
-                notifyItemChanged(0)
+                notifyItemChanged(centeredPosition.coerceIn(0, items.lastIndex))
             }
         }
+    }
+
+    fun setCenteredPosition(position: Int) {
+        val bounded = position.coerceIn(0, items.lastIndex.coerceAtLeast(0))
+        if (centeredPosition == bounded) return
+        val previous = centeredPosition
+        centeredPosition = bounded
+        // Refresh previous and new centered items so their visuals update
+        if (previous in items.indices) notifyItemChanged(previous)
+        if (centeredPosition in items.indices) notifyItemChanged(centeredPosition)
     }
 
     fun getItem(position: Int): TrackDto? = items.getOrNull(position)
@@ -63,10 +75,13 @@ class TrackCarouselAdapter(
                 crossfade(true)
             }
 
-            // Visual indication for current track state (optional, based on existing logic)
-            if (position == 0) {
+            // Visual indication for the centered/current track.
+            // Use centeredPosition tracked by the adapter instead of assuming index 0.
+            if (position == centeredPosition) {
+                // Centered page should reflect playing state
                 binding.albumArt.alpha = if (isPlaying) 1.0f else 0.5f
             } else {
+                // Non-centered pages are dimmed visually by the page transformer; keep art fully opaque here
                 binding.albumArt.alpha = 1.0f
             }
 
