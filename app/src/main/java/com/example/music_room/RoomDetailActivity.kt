@@ -493,7 +493,7 @@ class RoomDetailActivity : AppCompatActivity() {
         }
 
     val normalizedArtist = displayArtist.takeIf { it.isNotBlank() }
-        val trackKey = track?.let { "${it.id}|${it.title}|${normalizedArtist ?: it.artist}" }
+        track?.let { "${it.id}|${it.title}|${normalizedArtist ?: it.artist}" }
         if (track != null && track.title.isNotBlank() && !normalizedArtist.isNullOrBlank()) {
             lyricsManager.fetchLyrics(track.title, normalizedArtist, track.durationSeconds, track.id)
             // Apply color theme from album artwork

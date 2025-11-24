@@ -259,14 +259,28 @@ class MediaPlaybackService : MediaSessionService() {
             } else {
                 // Same stream URL - just update play/pause state
                 player.playWhenReady = state.isPlaying
+                
+                // Sync position ONLY if there's a significant difference (>2 seconds)
+                // This indicates a user seek action, not just polling drift
+                val backendPositionMs = (state.positionSeconds * 1000).toLong()
+                val currentPositionMs = player.currentPosition
+                val positionDeltaMs = kotlin.math.abs(backendPositionMs - currentPositionMs)
+                
+                if (positionDeltaMs > 2000 && player.playbackState == Player.STATE_READY) {
+                    android.util.Log.d("MediaService", "Seeking to ${state.positionSeconds}s (delta: ${positionDeltaMs}ms)")
+                    player.seekTo(backendPositionMs)
+                }
             }
-            
-            // Note: We intentionally DO NOT sync position here
-            // Position syncing during buffering causes seeks that interrupt playback
-            // The player will maintain its own position, and we only sync on user actions
             
             updateNotification()
         }
+    }
+    
+    fun seekTo(positionSeconds: Int) {
+        val player = exoPlayer ?: return
+        val positionMs = (positionSeconds * 1000).toLong()
+        player.seekTo(positionMs)
+        android.util.Log.d("MediaService", "Seeked to $positionSeconds seconds")
     }
 
     private suspend fun syncPlaybackStateWithBackend(isPlaying: Boolean) {

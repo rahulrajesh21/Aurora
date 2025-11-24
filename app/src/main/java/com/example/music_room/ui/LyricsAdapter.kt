@@ -231,9 +231,8 @@ class LyricsAdapter : RecyclerView.Adapter<LyricsAdapter.LyricViewHolder>() {
 			
 			// Build spannable with word-level coloring
 			val spannableBuilder = android.text.SpannableStringBuilder()
-			var textPosition = 0
-			
-			line.parts.forEachIndexed { index, part ->
+
+            line.parts.forEachIndexed { index, part ->
 				val wordText = part.words
 				val wordStart = spannableBuilder.length
 				spannableBuilder.append(wordText)

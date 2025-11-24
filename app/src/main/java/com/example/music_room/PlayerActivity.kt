@@ -473,7 +473,7 @@ class PlayerActivity : AppCompatActivity() {
         val state = pendingState
         pendingState = null
         pendingCarouselItems = null
-        val startIndex = animationStartIndex
+        animationStartIndex
         animationStartIndex = -1
         isAnimatingTrackChange = false
 
