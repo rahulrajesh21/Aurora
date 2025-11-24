@@ -30,15 +30,7 @@ data class RoomMemberDto(
     @Json(name = "isHost") val isHost: Boolean
 )
 
-data class RoomInviteDto(
-    @Json(name = "code") val code: String,
-    @Json(name = "roomId") val roomId: String,
-    @Json(name = "createdByMemberId") val createdByMemberId: String,
-    @Json(name = "createdAt") val createdAt: Long,
-    @Json(name = "expiresAt") val expiresAt: Long,
-    @Json(name = "maxUses") val maxUses: Int,
-    @Json(name = "uses") val uses: Int
-)
+
 
 data class CreateRoomRequestDto(
     @Json(name = "name") val name: String,
@@ -75,12 +67,4 @@ data class DeleteRoomRequestDto(
     @Json(name = "memberId") val memberId: String
 )
 
-data class CreateInviteRequestDto(
-    @Json(name = "requestedBy") val requestedBy: String,
-    @Json(name = "maxUses") val maxUses: Int? = null,
-    @Json(name = "ttlSeconds") val ttlSeconds: Int? = null
-)
 
-data class CreateInviteResponseDto(
-    @Json(name = "invite") val invite: RoomInviteDto
-)

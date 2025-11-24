@@ -2,8 +2,6 @@ package com.example.music_room
 
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.os.SystemClock
 import android.widget.SeekBar
 import android.widget.Toast
@@ -34,8 +32,10 @@ import com.example.music_room.databinding.ItemQueueCarouselBinding
 import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.ui.JoinRoomBottomSheet
 import com.example.music_room.ui.LyricsAdapter
+import com.example.music_room.ui.LyricsViewController
 import com.example.music_room.utils.PaletteThemeHelper
 import com.example.music_room.utils.PermissionUtils
+import com.example.music_room.utils.PlaybackTickerManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -48,36 +48,19 @@ class RoomDetailActivity : AppCompatActivity() {
     
     private val repository = AuroraServiceLocator.repository
     private val lyricsAdapter = LyricsAdapter()
+    private val lyricsViewController by lazy {
+        LyricsViewController(
+            lyricsRecyclerView = binding.lyricsRecycler,
+            lyricsLoadingView = binding.lyricsLoading,
+            lyricsMessageView = binding.lyricsMessage
+        )
+    }
     private val lyricsManager by lazy {
         com.example.music_room.ui.manager.LyricsManager(
             repository = AuroraServiceLocator.lyricsRepository,
             adapter = lyricsAdapter,
             scope = lifecycleScope,
-            onLyricsStateChanged = { state ->
-                when (state) {
-                    is com.example.music_room.ui.manager.LyricsState.Loading -> {
-                        binding.lyricsRecycler.isVisible = false
-                        binding.lyricsLoading.isVisible = true
-                        binding.lyricsMessage.isVisible = false
-                    }
-                    is com.example.music_room.ui.manager.LyricsState.Success -> {
-                        binding.lyricsRecycler.isVisible = true
-                        binding.lyricsLoading.isVisible = false
-                        binding.lyricsMessage.isVisible = false
-                    }
-                    is com.example.music_room.ui.manager.LyricsState.Error -> {
-                        binding.lyricsRecycler.isVisible = false
-                        binding.lyricsLoading.isVisible = false
-                        binding.lyricsMessage.isVisible = true
-                        binding.lyricsMessage.text = state.message
-                    }
-                    is com.example.music_room.ui.manager.LyricsState.Hidden -> {
-                        binding.lyricsRecycler.isVisible = false
-                        binding.lyricsLoading.isVisible = false
-                        binding.lyricsMessage.isVisible = false
-                    }
-                }
-            }
+            onLyricsStateChanged = { state -> lyricsViewController.handleLyricsState(state) }
         )
     }
     private val syncedLyrics: SyncedLyrics?
@@ -117,13 +100,10 @@ class RoomDetailActivity : AppCompatActivity() {
     private var lastObservedMemberId: String? = null
     private var hasAppliedMemberState = false
     
-    private val playbackTickerHandler = Handler(Looper.getMainLooper())
-    private val playbackTicker = object : Runnable {
-        override fun run() {
-            tickPlaybackProgress()
-            schedulePlaybackTicker()
-        }
-    }
+    
+    private val playbackTickerManager = PlaybackTickerManager(
+        onTick = { tickPlaybackProgress() }
+    )
     
     // High-precision timing for lyrics sync
     private var lastServerPositionMs: Long = 0
@@ -605,7 +585,6 @@ class RoomDetailActivity : AppCompatActivity() {
     }
 
     private fun schedulePlaybackTicker() {
-        playbackTickerHandler.removeCallbacks(playbackTicker)
         if (viewModel.uiState.value.playbackState?.isPlaying == true) {
             // Use faster updates (100ms) for rich-sync word-by-word animation
             // Fallback to line-sync (1s) if rich-sync not available
@@ -614,16 +593,16 @@ class RoomDetailActivity : AppCompatActivity() {
                     lyrics.lines.any { it.parts.isNotEmpty() }
             
             val updateInterval = if (hasRichSync) {
-                100L  // 100ms for word-level karaoke
+                PlaybackTickerManager.INTERVAL_RICH_SYNC  // 100ms for word-level karaoke
             } else {
-                1000L  // 1s for line-level or no lyrics
+                PlaybackTickerManager.INTERVAL_LINE_SYNC  // 1s for line-level or no lyrics
             }
-            playbackTickerHandler.postDelayed(playbackTicker, updateInterval)
+            playbackTickerManager.start(updateInterval)
         }
     }
 
     private fun stopPlaybackTicker() {
-        playbackTickerHandler.removeCallbacks(playbackTicker)
+        playbackTickerManager.stop()
     }
 
     private fun tickPlaybackProgress() {

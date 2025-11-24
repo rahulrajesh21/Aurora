@@ -1,8 +1,7 @@
 package com.example.music_room.data.remote
 
 import com.example.music_room.data.remote.model.AddToQueueRequestDto
-import com.example.music_room.data.remote.model.CreateInviteRequestDto
-import com.example.music_room.data.remote.model.CreateInviteResponseDto
+
 import com.example.music_room.data.remote.model.CreateRoomRequestDto
 import com.example.music_room.data.remote.model.CreateRoomResponseDto
 import com.example.music_room.data.remote.model.JoinRoomRequestDto
@@ -12,8 +11,7 @@ import com.example.music_room.data.remote.model.PlayRequestDto
 import com.example.music_room.data.remote.model.PlaybackStateDto
 import com.example.music_room.data.remote.model.QueueResponseDto
 import com.example.music_room.data.remote.model.ReorderQueueRequestDto
-import com.example.music_room.data.remote.model.RoomInvitesResponseDto
-import com.example.music_room.data.remote.model.RoomMembersResponseDto
+
 import com.example.music_room.data.remote.model.RoomSnapshotDto
 import com.example.music_room.data.remote.model.SearchRequestDto
 import com.example.music_room.data.remote.model.SearchResponseDto
@@ -73,8 +71,7 @@ interface AuroraApi {
     @PUT("api/rooms/{roomId}/queue/reorder")
     suspend fun reorderQueue(@Path("roomId") roomId: String, @Body body: ReorderQueueRequestDto): QueueResponseDto
 
-    @DELETE("api/rooms/{roomId}/queue")
-    suspend fun clearQueue(@Path("roomId") roomId: String): QueueResponseDto
+
 
     @POST("api/rooms/{roomId}/queue/shuffle")
     suspend fun shuffleQueue(@Path("roomId") roomId: String): QueueResponseDto
@@ -112,17 +109,7 @@ interface AuroraApi {
         @Body body: DeleteRoomRequestDto
     ): Response<Void>
 
-    @GET("api/rooms/{roomId}/members")
-    suspend fun getRoomMembers(@Path("roomId") roomId: String): RoomMembersResponseDto
 
-    @GET("api/rooms/{roomId}/invites")
-    suspend fun getRoomInvites(@Path("roomId") roomId: String): RoomInvitesResponseDto
-
-    @POST("api/rooms/{roomId}/invites")
-    suspend fun createInvite(
-        @Path("roomId") roomId: String,
-        @Body body: CreateInviteRequestDto
-    ): CreateInviteResponseDto
 
     @GET("api/popular-albums")
     suspend fun getPopularAlbums(): PopularAlbumsResponseDto
