@@ -18,6 +18,5 @@ data class ReorderQueueRequestDto(
 )
 
 data class SeekRequestDto(
-    @Json(name = "positionSeconds") val positionSeconds: Int? = null,
-    @Json(name = "percentage") val percentage: Double? = null
+    @Json(name = "positionSeconds") val positionSeconds: Int? = null
 )

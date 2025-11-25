@@ -2,8 +2,6 @@ package com.example.music_room
 
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.os.SystemClock
 import android.widget.SeekBar
 import android.widget.Toast
@@ -27,7 +25,9 @@ import com.example.music_room.databinding.ActivityPlayerBinding
 import com.example.music_room.databinding.ItemQueueCarouselBinding
 import com.example.music_room.service.MediaServiceManager
 import com.example.music_room.ui.LyricsAdapter
+import com.example.music_room.ui.LyricsViewController
 import com.example.music_room.utils.PermissionUtils
+import com.example.music_room.utils.PlaybackTickerManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -53,48 +53,28 @@ class PlayerActivity : AppCompatActivity() {
     }
     private var currentState: PlaybackStateDto? = null
     private lateinit var mediaServiceManager: MediaServiceManager
-    private val playbackTickerHandler = Handler(Looper.getMainLooper())
-    private val playbackTicker = object : Runnable {
-        override fun run() {
-            tickPlaybackPosition()
-            schedulePlaybackTicker()
-        }
-    }
+    
+    private val playbackTickerManager = PlaybackTickerManager(
+        onTick = { tickPlaybackPosition() }
+    )
     private var basePositionSeconds = 0f
     private var baseTimestamp = 0L
 
     private val telemetryManager by lazy { PlayerTelemetryManager(playbackSocket) }
     private val lyricsAdapter = LyricsAdapter()
+    private val lyricsViewController by lazy {
+        LyricsViewController(
+            lyricsRecyclerView = binding.lyricsRecyclerView,
+            lyricsLoadingView = binding.lyricsLoading,
+            lyricsMessageView = binding.lyricsMessage
+        )
+    }
     private val lyricsManager by lazy {
         com.example.music_room.ui.manager.LyricsManager(
             repository = AuroraServiceLocator.lyricsRepository,
             adapter = lyricsAdapter,
             scope = lifecycleScope,
-            onLyricsStateChanged = { state ->
-                when (state) {
-                    is com.example.music_room.ui.manager.LyricsState.Loading -> {
-                        binding.lyricsRecyclerView.isVisible = false
-                        binding.lyricsLoading.isVisible = true
-                        binding.lyricsMessage.isVisible = false
-                    }
-                    is com.example.music_room.ui.manager.LyricsState.Success -> {
-                        binding.lyricsRecyclerView.isVisible = true
-                        binding.lyricsLoading.isVisible = false
-                        binding.lyricsMessage.isVisible = false
-                    }
-                    is com.example.music_room.ui.manager.LyricsState.Error -> {
-                        binding.lyricsRecyclerView.isVisible = false
-                        binding.lyricsLoading.isVisible = false
-                        binding.lyricsMessage.isVisible = true
-                        binding.lyricsMessage.text = state.message
-                    }
-                    is com.example.music_room.ui.manager.LyricsState.Hidden -> {
-                        binding.lyricsRecyclerView.isVisible = false
-                        binding.lyricsLoading.isVisible = false
-                        binding.lyricsMessage.isVisible = false
-                    }
-                }
-            }
+            onLyricsStateChanged = { state -> lyricsViewController.handleLyricsState(state) }
         )
     }
     
@@ -473,7 +453,7 @@ class PlayerActivity : AppCompatActivity() {
         val state = pendingState
         pendingState = null
         pendingCarouselItems = null
-        val startIndex = animationStartIndex
+        animationStartIndex
         animationStartIndex = -1
         isAnimatingTrackChange = false
 
@@ -595,15 +575,14 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun schedulePlaybackTicker() {
-        playbackTickerHandler.removeCallbacks(playbackTicker)
         if (currentState?.isPlaying == true) {
             // Run at 60fps (approx 16ms) for smooth animation
-            playbackTickerHandler.postDelayed(playbackTicker, 16)
+            playbackTickerManager.start(PlaybackTickerManager.INTERVAL_60FPS)
         }
     }
 
     private fun stopPlaybackTicker() {
-        playbackTickerHandler.removeCallbacks(playbackTicker)
+        playbackTickerManager.stop()
     }
 
     private fun tickPlaybackPosition() {

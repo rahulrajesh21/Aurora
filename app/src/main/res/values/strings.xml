@@ -3,7 +3,7 @@
     <string name="loading">Loading...</string>
     <string name="now_playing_label">NOW PLAYING</string>
     <string name="paused_label">PAUSED</string>
-    <string name="reminder_label">Reminder</string>
+
     <string name="lyrics_label">Lyrics</string>
     <string name="player_error">Player Error</string>
     <string name="no_track_playing">No track playing</string>
@@ -11,9 +11,7 @@
     <string name="playback_controls_error">Playback Control Error</string>
     <string name="shuffle_success">Queue shuffled</string>
     <string name="restart_track_success">Track restarted</string>
-    <string name="feature_coming_soon">Feature coming soon</string>
-    <string name="lyrics_not_found">Lyrics not found</string>
-    <string name="lyrics_instrumental">Instrumental Track</string>
+
     
     <!-- Reconstructed strings -->
     <string name="delete_room_not_allowed">You cannot delete this room</string>

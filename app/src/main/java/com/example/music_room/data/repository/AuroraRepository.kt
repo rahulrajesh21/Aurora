@@ -3,8 +3,7 @@ package com.example.music_room.data.repository
 import com.example.music_room.data.remote.AuroraApi
 import com.example.music_room.data.remote.model.AddToQueueRequestDto
 import com.example.music_room.data.remote.model.ApiErrorResponse
-import com.example.music_room.data.remote.model.CreateInviteRequestDto
-import com.example.music_room.data.remote.model.CreateInviteResponseDto
+
 import com.example.music_room.data.remote.model.CreateRoomRequestDto
 import com.example.music_room.data.remote.model.CreateRoomResponseDto
 import com.example.music_room.data.remote.model.JoinRoomRequestDto
@@ -16,8 +15,7 @@ import com.example.music_room.data.remote.model.PauseRequestDto
 import com.example.music_room.data.remote.model.PopularAlbumsResponseDto
 import com.example.music_room.data.remote.model.QueueResponseDto
 import com.example.music_room.data.remote.model.ReorderQueueRequestDto
-import com.example.music_room.data.remote.model.RoomInvitesResponseDto
-import com.example.music_room.data.remote.model.RoomMembersResponseDto
+
 import com.example.music_room.data.remote.model.RoomSnapshotDto
 import com.example.music_room.data.remote.model.SearchRequestDto
 import com.example.music_room.data.remote.model.SearchResponseDto
@@ -64,9 +62,7 @@ class AuroraRepository(
         api.seek(roomId, SeekRequestDto(positionSeconds = positionSeconds))
     }
 
-    suspend fun seekPercentage(roomId: String, percentage: Double): Result<PlaybackStateDto> = safeCall {
-        api.seek(roomId, SeekRequestDto(percentage = percentage))
-    }
+
 
     suspend fun addToQueue(roomId: String, trackId: String, provider: String = "YOUTUBE", addedBy: String? = null): Result<QueueResponseDto> = safeCall {
         api.addToQueue(roomId, AddToQueueRequestDto(trackId = trackId, provider = provider, addedBy = addedBy))
@@ -82,7 +78,7 @@ class AuroraRepository(
 
     suspend fun shuffleQueue(roomId: String): Result<QueueResponseDto> = safeCall { api.shuffleQueue(roomId) }
 
-    suspend fun clearQueue(roomId: String): Result<QueueResponseDto> = safeCall { api.clearQueue(roomId) }
+
 
     suspend fun getQueue(roomId: String): Result<QueueResponseDto> = safeCall { api.getQueue(roomId) }
 
@@ -164,22 +160,9 @@ class AuroraRepository(
         Unit
     }
 
-    suspend fun getRoomMembers(roomId: String): Result<RoomMembersResponseDto> = safeCall {
-        api.getRoomMembers(roomId)
-    }
 
-    suspend fun getRoomInvites(roomId: String): Result<RoomInvitesResponseDto> = safeCall {
-        api.getRoomInvites(roomId)
-    }
 
-    suspend fun createInvite(
-        roomId: String,
-        requestedBy: String,
-        maxUses: Int? = null,
-        ttlSeconds: Int? = null
-    ): Result<CreateInviteResponseDto> = safeCall {
-        api.createInvite(roomId, CreateInviteRequestDto(requestedBy = requestedBy, maxUses = maxUses, ttlSeconds = ttlSeconds))
-    }
+
 
     private suspend fun <T> safeCall(block: suspend () -> T): Result<T> = withContext(Dispatchers.IO) {
         try {
