@@ -91,6 +91,8 @@ class RoomDetailActivity : AppCompatActivity() {
     private val roomName: String by lazy { intent.getStringExtra(EXTRA_ROOM_NAME).orEmpty() }
     private val isLocked: Boolean by lazy { intent.getBooleanExtra(EXTRA_ROOM_LOCKED, false) }
     private val roomHostId: String by lazy { intent.getStringExtra(EXTRA_ROOM_HOST_ID).orEmpty() }
+    private val autoSearch: Boolean by lazy { intent.getBooleanExtra("AUTO_SEARCH", false) }
+    private val searchQuery: String? by lazy { intent.getStringExtra("SEARCH_QUERY") }
     
     private var leaveRequested = false
     private var sliderBeingDragged = false
@@ -135,6 +137,12 @@ class RoomDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.refreshPlaybackState()
             viewModel.refreshQueue()
+            
+            // Handle auto-search from popular albums
+            val query = searchQuery
+            if (autoSearch && !query.isNullOrBlank()) {
+                handleAutoSearchAndAdd(query)
+            }
         }
     }
 
@@ -773,6 +781,40 @@ class RoomDetailActivity : AppCompatActivity() {
             }
         )
         sheet.show()
+    }
+    
+    private fun handleAutoSearchAndAdd(query: String) {
+        viewModel.search(query,
+            onSuccess = { results ->
+                if (results.isNotEmpty()) {
+                    val firstTrack = results.first()
+                    // Add the first result to queue automatically
+                    viewModel.addToQueue(
+                        firstTrack.id,
+                        firstTrack.provider,
+                        UserIdentity.getDisplayName(this)
+                    )
+                    Toast.makeText(
+                        this,
+                        "Added \"${firstTrack.title}\" to queue",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "No results found for \"$query\"",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            onError = { error ->
+                Toast.makeText(
+                    this,
+                    "Search failed: ${error.message ?: "Unknown error"}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
     }
 
     private fun joinRoomIfNeeded() {

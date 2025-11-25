@@ -20,13 +20,8 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: com.example.music_room.ui.viewmodel.MainViewModel by viewModels()
     
     private val albumsAdapter = AlbumAdapter { album, imageView ->
-        openPlayer(
-            songTitle = album.title,
-            artistName = album.artist,
-            trackId = album.trackId,
-            provider = album.provider,
-            sharedElement = imageView
-        )
+        // Show dialog to select a room to play this album in
+        showRoomSelectionDialog(album)
     }
     
     private val roomsAdapter = RoomsAdapter { snapshot ->
@@ -128,5 +123,39 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.refreshRooms()
+    }
+    
+    private fun showRoomSelectionDialog(album: Album) {
+        val rooms = viewModel.uiState.value.rooms
+        
+        if (rooms.isEmpty()) {
+            Toast.makeText(
+                this,
+                "Please create or join a room first to play music",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        
+        // Create a dialog to select which room to search and play in
+        val roomNames = rooms.map { it.room.name }.toTypedArray()
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle("Select a room to play in")
+        builder.setItems(roomNames) { _, which ->
+            val selectedRoom = rooms[which]
+            // Navigate to the room and trigger search for this album
+            val intent = Intent(this, RoomDetailActivity::class.java).apply {
+                putExtra(RoomDetailActivity.EXTRA_ROOM_ID, selectedRoom.room.id)
+                putExtra(RoomDetailActivity.EXTRA_ROOM_NAME, selectedRoom.room.name)
+                putExtra(RoomDetailActivity.EXTRA_ROOM_LOCKED, selectedRoom.isLocked)
+                putExtra(RoomDetailActivity.EXTRA_ROOM_HOST_ID, selectedRoom.room.hostId)
+                // Pass the album info to auto-search when the room opens
+                putExtra("SEARCH_QUERY", "${album.artist} ${album.title}")
+                putExtra("AUTO_SEARCH", true)
+            }
+            startActivity(intent)
+        }
+        builder.setNegativeButton("Cancel", null)
+        builder.show()
     }
 }
