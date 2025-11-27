@@ -47,6 +47,7 @@ class MediaPlaybackService : MediaSessionService() {
     private var currentRoomId: String? = null
     private var currentState: PlaybackStateDto? = null
     private var playbackSocket: com.example.music_room.data.socket.PlaybackSocketClient? = null
+    private var lastProcessedTimestamp: Long = 0
 
     /**
      * Binder for local service binding
@@ -90,11 +91,22 @@ class MediaPlaybackService : MediaSessionService() {
             .setUsage(C.USAGE_MEDIA)
             .build()
 
+        // Configure optimized load control for faster startup and smoother streaming
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                30_000, // Min buffer: 30s
+                120_000, // Max buffer: 2 mins
+                1_500, // Buffer for playback: 1.5s (reduced for faster start)
+                3_000 // Buffer for rebuffer: 3s
+            )
+            .build()
+
         // Create ExoPlayer with optimized settings for streaming
         exoPlayer = ExoPlayer.Builder(this)
             .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
+            .setLoadControl(loadControl)
             .build().apply {
                 
                 // Handle playback events
@@ -210,6 +222,7 @@ class MediaPlaybackService : MediaSessionService() {
         playbackSocket?.disconnect()
         currentRoomId = null
         currentState = null
+        lastProcessedTimestamp = 0
         
         // Stop foreground and remove notification
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -230,6 +243,15 @@ class MediaPlaybackService : MediaSessionService() {
     }
 
     private suspend fun handleBackendStateUpdate(state: PlaybackStateDto) {
+        android.util.Log.d("MediaService", "handleBackendStateUpdate: isPlaying=${state.isPlaying}, ts=${state.timestamp}, currentTs=$lastProcessedTimestamp")
+        
+        // Stale state protection
+        if (state.timestamp < lastProcessedTimestamp) {
+            android.util.Log.w("MediaService", "Ignoring stale state update. State ts: ${state.timestamp}, Last processed: $lastProcessedTimestamp")
+            return
+        }
+        
+        lastProcessedTimestamp = state.timestamp
         currentState = state
         
         val player = exoPlayer ?: return
@@ -250,6 +272,7 @@ class MediaPlaybackService : MediaSessionService() {
             
             if (currentUri != streamUrl) {
                 // New stream URL - need to load new media
+                android.util.Log.d("MediaService", "Loading new media item: $streamUrl")
                 val mediaItem = MediaItem.fromUri(streamUrl)
                 player.setMediaItem(mediaItem)
                 player.prepare()
@@ -258,7 +281,10 @@ class MediaPlaybackService : MediaSessionService() {
                 player.playWhenReady = state.isPlaying
             } else {
                 // Same stream URL - just update play/pause state
-                player.playWhenReady = state.isPlaying
+                if (player.playWhenReady != state.isPlaying) {
+                     android.util.Log.d("MediaService", "Updating playWhenReady to ${state.isPlaying}")
+                     player.playWhenReady = state.isPlaying
+                }
                 
                 // Sync position ONLY if there's a significant difference (>2 seconds)
                 // This indicates a user seek action, not just polling drift

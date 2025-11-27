@@ -36,10 +36,11 @@ class PlaybackSocketClient(
         val request = Request.Builder().url(socketUrl).build()
         webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
-                // no-op
+                android.util.Log.d("PlaybackSocket", "Socket opened to $socketUrl")
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
+                android.util.Log.v("PlaybackSocket", "Received message: $text")
                 // Try generic event first
                 try {
                     val event = eventAdapter.fromJson(text)
@@ -58,9 +59,11 @@ class PlaybackSocketClient(
                     adapter.fromJson(text)
                 }.onSuccess { state ->
                     if (state != null) {
+                        android.util.Log.d("PlaybackSocket", "Parsed state: isPlaying=${state.isPlaying}, ts=${state.timestamp}, track=${state.currentTrack?.title}")
                         onState(state)
                     }
                 }.onFailure { error ->
+                    android.util.Log.e("PlaybackSocket", "Failed to parse message", error)
                     onError(error)
                 }
             }
@@ -70,11 +73,12 @@ class PlaybackSocketClient(
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
+                android.util.Log.e("PlaybackSocket", "Socket failure: ${t.message}", t)
                 onError(t)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                // no-op
+                android.util.Log.d("PlaybackSocket", "Socket closed: $code / $reason")
             }
         })
     }
