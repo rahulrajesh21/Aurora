@@ -229,14 +229,54 @@ export class YouTubeMusicScraperProvider implements MusicProvider {
   }
 
   /**
-   * Get track details using yt-dlp directly
-   * Skip the YouTube Music API since it's unreliable
+   * Get track details using YouTube Music API first, fallback to yt-dlp
    */
   async getTrack(trackId: string): Promise<Track | null> {
+    // Try API first (fast)
+    try {
+      logger.info({ trackId }, 'Fetching track metadata via YouTube Music API');
+      const track = await this.getTrackFromApi(trackId);
+      if (track) {
+        return track;
+      }
+    } catch (error) {
+      logger.warn({ error, trackId }, 'YouTube Music API getTrack failed, falling back to yt-dlp');
+    }
+
+    // Fallback to yt-dlp (slow but reliable)
     return this.withRetry('getTrack', async () => {
-      logger.info({ trackId }, 'Fetching track metadata via yt-dlp');
+      logger.info({ trackId }, 'Fetching track metadata via yt-dlp fallback');
       return this.getTrackFromYtDlp(trackId);
     });
+  }
+
+  private async getTrackFromApi(trackId: string): Promise<Track | null> {
+    const url = `${YT_MUSIC_BASE}/player?key=${this.apiKey}`;
+    const body = {
+      context: this.webContext, // Use WEB_REMIX client (more reliable for metadata)
+      videoId: trackId,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://music.youtube.com/',
+        'Origin': 'https://music.youtube.com',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new ProviderError(
+        ProviderType.YOUTUBE,
+        `YouTube Music API player request failed: ${response.status}`
+      );
+    }
+
+    const data = (await response.json()) as YTMusicPlayerResponse;
+    return this.parsePlayerResponse(data, trackId);
   }
 
   private async getTrackFromYtDlp(trackId: string): Promise<Track | null> {
